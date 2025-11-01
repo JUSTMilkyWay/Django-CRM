@@ -1,0 +1,59 @@
+{% extends 'main/layout.html' %}
+{% block title %}CRM{% endblock %}
+
+{% block content %}
+<div class="crm crm-page">
+
+    <div class="crm-header">
+        <button class="crm-btn active">Лиды</button>
+        <button class="crm-btn">ToDo</button>
+    </div>
+
+    <div class="kanban">
+        {% for title in columns %}
+        <div class="kanban-column" ondragover="allowDrop(event)" ondrop="drop(event)">
+            <h2>{{ title }}</h2>
+            <button class="add-card-btn" onclick="addCard(this)">+</button>
+            <div class="kanban-cards"></div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<script>
+function addCard(button) {
+    const container = button.nextElementSibling;
+    const card = document.createElement('div');
+    card.className = 'kanban-card';
+    card.draggable = true;
+    card.ondragstart = drag;
+    card.innerHTML = `
+        <span contenteditable="true">Новая карточка</span>
+        <button class="delete-btn" onclick="this.parentElement.remove()">×</button>
+    `;
+    container.appendChild(card);
+}
+
+function drag(event) {
+    event.dataTransfer.setData("text", event.target.outerHTML);
+    event.target.classList.add('dragging');
+}
+
+function allowDrop(event) {
+    event.preventDefault();
+}
+
+function drop(event) {
+    event.preventDefault();
+    const draggedHTML = event.dataTransfer.getData("text");
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(draggedHTML, "text/html");
+    const card = doc.body.firstChild;
+    card.draggable = true;
+    card.ondragstart = drag;
+    event.currentTarget.querySelector('.kanban-cards').appendChild(card);
+    document.querySelectorAll('.dragging').forEach(e => e.remove());
+}
+</script>
+{% endblock %}
