@@ -1,3 +1,5 @@
 from django.contrib import admin
+from .models import KanbanColumn, Lead
 
-# Register your models here.
+admin.site.register(KanbanColumn)
+admin.site.register(Lead)

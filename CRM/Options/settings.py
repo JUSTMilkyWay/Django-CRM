@@ -21,6 +21,7 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'main',
     'crm',
+    'user_auth',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -44,7 +45,7 @@ ROOT_URLCONF = 'Options.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ['templates/main'],
+        'DIRS': ['templates/main', 'templates/user_auth', 'templates/crm'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -107,8 +108,10 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 STATICFILES_DIRS = [
-    BASE_DIR / "main/static",
+    BASE_DIR / "main" / "static",
+    BASE_DIR / "crm" / "static",
 ]
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
