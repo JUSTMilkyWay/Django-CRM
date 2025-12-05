@@ -45,7 +45,19 @@ class Lead(models.Model):
     # Дополнительно (раздел)
     website = models.URLField(blank=True, null=True, verbose_name='Сайт')
     source = models.CharField(max_length=100, blank=True, null=True, verbose_name='Источник')
-    priority = models.CharField(max_length=20, blank=True, null=True, verbose_name='Приоритет')
+
+    PRIORITY_CHOICES = [
+        ('not_set', 'Не обозначен'),
+        ('low', 'Низкий'),
+        ('high', 'Высокий'),
+        ('critical', 'Критический'),
+    ]
+    priority = models.CharField(
+        max_length=20,
+        choices=PRIORITY_CHOICES,
+        default='not_set',
+        verbose_name='Приоритет'
+    )
 
     column = models.ForeignKey(
         KanbanColumn,

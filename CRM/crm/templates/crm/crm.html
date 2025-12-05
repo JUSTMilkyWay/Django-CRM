@@ -20,18 +20,29 @@
             <button class="add-card-btn" onclick="addCard(this, {{ column.id }})">+</button>
             <div class="kanban-cards" id="column-{{ column.id }}">
                 {% for lead in column.leads.all %}
-                    <div class="kanban-card" data-id="{{ lead.id }}" draggable="true" ondragstart="drag(event)">
+                    {% with priority=lead.priority|default:'not_set' %}
+                    <div class="kanban-card priority-{{ priority }}"
+                         data-id="{{ lead.id }}"
+                         draggable="true"
+                         ondragstart="drag(event)"
+                         data-priority="{{ priority }}">
                         <div class="lead-info">
                             <strong>{{ lead.company_name }}</strong>
                             {% if lead.inn %}<small>ИНН: {{ lead.inn }}</small>{% endif %}
-                            <div class="lead-meta">{{ lead.created_at|date:"d.m.Y" }}</div>
+                            <div class="lead-meta">
+                                {{ lead.created_at|date:"d.m.Y" }}
+                                {% if priority != 'not_set' %}
+                                <span class="priority-indicator" title="Приоритет: {{ lead.get_priority_display }}">
+                                    {{ lead.get_priority_display }}
+                                </span>
+                                {% endif %}
+                            </div>
                         </div>
                         <div class="card-actions">
                             <button class="edit-btn" title="Редактировать" onclick="editLead({{ lead.id }})">✎</button>
-                            <!-- УБРАЛ confirm из onclick -->
-                            <button class="delete-btn" title="Удалить" onclick="deleteCard({{ lead.id }})">&times;</button>
                         </div>
                     </div>
+                    {% endwith %}
                 {% endfor %}
             </div>
         </div>
@@ -43,15 +54,21 @@
 <div id="leadModal" class="modal" style="display: none;">
     <div class="modal-content">
         <span class="close" onclick="closeModal()">&times;</span>
-        <h2>Редактировать лид</h2>
+            <div class="company-base-info">
+                <h2 id="modal_legal_name_base" style="margin-top: 0; margin-bottom: 20px; color: #fff;">
+                <!-- Здесь будет отображаться юр. название -->
+                </h2>
+            </div>
+            <br>
+            <h3>Редактировать лид</h3>
             <div id="modalBody">
                 <!-- Раздел 1: Компания -->
                 <div class="form-section">
                     <h3>Компания</h3>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Форма организации</label>
-                            <select id="modal_legal_form">
+                            <label>Форма организации *</label>
+                            <select id="modal_legal_form" required>
                                 <option value="">Выберите</option>
                                 <option value="ИП">ИП</option>
                                 <option value="ООО">ООО</option>
@@ -66,8 +83,8 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Юридическое название</label>
-                            <input type="text" id="modal_legal_name">
+                            <label>Юридическое название *</label>
+                            <input type="text" id="modal_legal_name" required>
                         </div>
                     </div>
                 </div>
@@ -87,7 +104,7 @@
                     </div>
                     <div class="form-group">
                         <label>Генеральный директор</label>
-                        <input type="text" id="modal_director_fio">
+                            <input type="text" id="modal_director_fio">
                     </div>
                 </div>
 
@@ -127,7 +144,7 @@
                     </div>
                     <div class="form-group">
                         <label>Адрес</label>
-                        <textarea id="modal_address" rows="2"></textarea>
+                            <textarea id="modal_address" rows="2"></textarea>
                     </div>
                 </div>
 
@@ -171,10 +188,10 @@
                         <div class="form-group">
                             <label>Приоритет</label>
                             <select id="modal_priority">
-                                <option value="">Обычный</option>
-                                <option value="низкий">Низкий</option>
-                                <option value="высокий">Высокий</option>
-                                <option value="критический">Критический</option>
+                                <option value="not_set">Не обозначен</option>
+                                <option value="low">Низкий</option>
+                                <option value="high">Высокий</option>
+                                <option value="critical">Критический</option>
                             </select>
                         </div>
                     </div>
@@ -184,7 +201,10 @@
                     </div>
                 </div>
             </div>
-        <button class="btn-save" onclick="saveLead()">Сохранить</button>
+        <div class="form-buttons">
+            <button class="btn-save" onclick="saveLead()">Сохранить</button>
+            <button class="delete-btn" title="Удалить" onclick="deleteCurrentLead()">Удалить</button>
+        </div>
     </div>
 </div>
 
@@ -226,27 +246,196 @@
     width: 100%;
     height: 100%;
     background-color: rgba(0,0,0,0.7);
+    overflow: hidden;
 }
+
 .modal-content {
-    position: absolute;      /* Абсолютное позиционирование */
-    right: 0;               /* Прижато к правому краю */
-    top: 0;                 /* Начинается с верха */
-    height: 100%;           /* На всю высоту экрана */
-    width: 40%;           /* Фиксированная ширина */
-    max-width: 90%;         /* Но не больше 90% */
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 40%;
+    max-width: 90%;
     background-color: #2b2b2b;
     padding: 30px;
     color: white;
-    margin: 0;              /* Убираем auto-отступы */
-    border-radius: 3px;       /* Убираем скругления */
-    box-shadow: -5px 0 25px rgba(0,0,0,0.3); /* Тень слева */
+    margin: 0;
+    border-radius: 3px;
+    box-shadow: -5px 0 25px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
+
+/* Стили для карточек с приоритетами */
+.kanban-card {
+    background: #2b2b2b;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    cursor: move;
+    border-left: 4px solid transparent;
+    transition: all 0.2s;
+}
+
+/* Белый текст для всех карточек */
+.kanban-card strong,
+.kanban-card small,
+.kanban-card .lead-meta {
+    color: white !important;
+}
+
+/* Цвета для приоритетов */
+.kanban-card.priority-not_set {
+    background: linear-gradient(135deg,
+        rgba(195, 126, 247, 0.15) 0%,
+        rgba(195, 126, 247, 0.05) 100%
+    ) !important;
+    border-left-color: #61b4f0 !important;
+}
+
+.kanban-card.priority-low {
+    background: linear-gradient(135deg,
+        rgba(72, 187, 180, 0.15) 0%,
+        rgba(72, 187, 180, 0.05) 100%
+    ) !important;
+    border-left-color: #48bbb4 !important;
+}
+
+.kanban-card.priority-high {
+    background: linear-gradient(135deg,
+        rgba(255, 193, 7, 0.15) 0%,
+        rgba(255, 193, 7, 0.05) 100%
+    ) !important;
+    border-left-color: #ffc107 !important;
+}
+
+.kanban-card.priority-critical {
+    background: linear-gradient(135deg,
+        rgba(220, 53, 69, 0.15) 0%,
+        rgba(220, 53, 69, 0.05) 100%
+    ) !important;
+    border-left-color: #dc3545 !important;
+}
+
+/* Стили для индикатора приоритета */
+.priority-indicator {
+    margin-left: 8px;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+/* Цвета текста для индикаторов */
+.kanban-card.priority-low .priority-indicator {
+    background: rgba(72, 187, 180, 0.3);
+    color: #48bbb4 !important;
+}
+
+.kanban-card.priority-high .priority-indicator {
+    background: rgba(255, 193, 7, 0.3);
+    color: #ffc107 !important;
+}
+
+.kanban-card.priority-critical .priority-indicator {
+    background: rgba(220, 53, 69, 0.3);
+    color: #dc3545 !important;
+}
+
+/* Заголовок модального окна */
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    flex-shrink: 0;
+}
+
+/* Контейнер для содержимого формы */
+#modalBody {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 10px;
+    margin-right: -10px;
+}
+
+/* Стили для скроллбара */
+#modalBody::-webkit-scrollbar {
+    width: 6px;
+}
+
+#modalBody::-webkit-scrollbar-track {
+    background: #3a3a3a;
+    border-radius: 3px;
+}
+
+#modalBody::-webkit-scrollbar-thumb {
+    background: #8d48e8;
+    border-radius: 3px;
+}
+
+.form-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    align-items: stretch;
+}
+
+.btn-save,
+.delete-btn {
+    height: 48px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+}
+
+.btn-save {
+    flex: 1;
+    background: #8d48e8;
+    color: white;
+}
+
+.delete-btn {
+    flex: 0 0 auto;
+    width: 150px;
+    background: #f50733;
+    color: white;
+}
+
+/* Закрывающая кнопка */
 .close {
     color: #aaa;
     float: right;
-    font-size: 28px;
+    font-size: 40px;
     cursor: pointer;
+    line-height: 1;
+    position: absolute;
+    right: 20px;
+    top: 15px;
+    z-index: 10;
 }
+
+/* Группы полей в строку */
+.form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.form-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+/* Делаем некоторые поля шире */
+.form-group[style*="flex: 2"] {
+    flex: 2;
+}
+
 .form-group {
     margin-bottom: 20px;
 }
@@ -264,16 +453,7 @@
     border-radius: 5px;
     color: white;
 }
-.btn-save {
-    background: #8d48e8;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
-    cursor: pointer;
-    width: 100%;
-    margin-top: 20px;
-}
+
 /* Стили для разделов формы */
 .form-section {
     margin-bottom: 30px;
@@ -292,23 +472,6 @@
     margin-bottom: 15px;
     padding-bottom: 8px;
     border-bottom: 1px solid #555;
-}
-
-/* Группы полей в строку */
-.form-row {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 15px;
-}
-
-.form-row .form-group {
-    flex: 1;
-    margin-bottom: 0;
-}
-
-/* Делаем некоторые поля шире */
-.form-group[style*="flex: 2"] {
-    flex: 2;
 }
 </style>
 
@@ -353,11 +516,11 @@ function addCard(button, columnId) {
 
         const container = button.nextElementSibling;
         const card = document.createElement('div');
-        card.className = 'kanban-card';
+        card.className = 'kanban-card priority-not_set';
         card.dataset.id = data.id;
+        card.dataset.priority = 'not_set';
         card.draggable = true;
         card.ondragstart = drag;
-        // УБРАЛ клик по карточке
 
         card.innerHTML = `
             <div class="lead-info">
@@ -366,7 +529,6 @@ function addCard(button, columnId) {
             </div>
             <div class="card-actions">
                 <button class="edit-btn" title="Редактировать">✎</button>
-                <button class="delete-btn" title="Удалить">&times;</button>
             </div>
         `;
 
@@ -376,17 +538,13 @@ function addCard(button, columnId) {
             editLead(data.id);
         };
 
-        // Обработчик для кнопки удаления
-        card.querySelector('.delete-btn').onclick = function(event) {
-            event.stopPropagation();
-            deleteCard(data.id);
-        };
-
         container.appendChild(card);
 
         // Обновляем счетчик колонки
         const columnCount = button.parentElement.querySelector('.column-count');
         columnCount.textContent = parseInt(columnCount.textContent) + 1;
+
+        editLead(data.id);
     })
     .catch(error => {
         console.error('Error:', error);
@@ -409,13 +567,49 @@ function updateCardOnBoard(leadId, data) {
                 card.querySelector('.lead-info').appendChild(innEl);
             }
             innEl.textContent = `ИНН: ${data.inn}`;
+        } else {
+            // Удаляем ИНН если его нет
+            const innEl = card.querySelector('.inn-info');
+            if (innEl) {
+                innEl.remove();
+            }
+        }
+
+        // Обновляем приоритет
+        if (data.priority) {
+            card.dataset.priority = data.priority;
+            card.classList.remove('priority-not_set', 'priority-low', 'priority-high', 'priority-critical');
+            card.classList.add(`priority-${data.priority}`);
+
+            // Обновляем индикатор приоритета
+            const leadMeta = card.querySelector('.lead-meta');
+            let priorityIndicator = card.querySelector('.priority-indicator');
+
+            const priorityTitles = {
+                'low': 'Низкий',
+                'high': 'Высокий',
+                'critical': 'Критический',
+                'not_set': 'Не обозначен'
+            };
+
+            if (data.priority !== 'not_set') {
+                if (!priorityIndicator) {
+                    priorityIndicator = document.createElement('span');
+                    priorityIndicator.className = 'priority-indicator';
+                    leadMeta.appendChild(priorityIndicator);
+                }
+                priorityIndicator.textContent = priorityTitles[data.priority];
+                priorityIndicator.title = `Приоритет: ${priorityTitles[data.priority]}`;
+                priorityIndicator.style.display = 'inline';
+            } else if (priorityIndicator) {
+                // Удаляем индикатор если приоритет "Не обозначен"
+                priorityIndicator.remove();
+            }
         }
     }
 }
 
 function deleteCard(leadId) {
-    // УБРАЛ confirm - сразу удаляем
-
     fetch(`delete_lead/${leadId}/`, {
         method: 'POST',
         headers: {
@@ -443,7 +637,6 @@ function deleteCard(leadId) {
         } else {
             response.json().then(data => {
                 console.error('Ошибка удаления:', data.error || 'Неизвестная ошибка');
-                // Можно показать маленькое уведомление вместо alert
                 showNotification('Ошибка при удалении', 'error');
             });
         }
@@ -452,6 +645,16 @@ function deleteCard(leadId) {
         console.error('Error:', error);
         showNotification('Ошибка сети', 'error');
     });
+}
+
+// Функция для удаления лида из модального окна
+function deleteCurrentLead() {
+    if (!currentLeadId) return;
+
+    if (confirm('Вы уверены, что хотите удалить этот лид?')) {
+        deleteCard(currentLeadId);
+        closeModal();
+    }
 }
 
 function showNotification(message, type = 'info') {
@@ -491,7 +694,7 @@ document.head.insertAdjacentHTML('beforeend', `
 </style>
 `);
 
-// Функция для редактирования лида (пока просто алерт)
+// Функция для редактирования лида
 function editLead(leadId) {
     currentLeadId = leadId;
 
@@ -499,6 +702,8 @@ function editLead(leadId) {
     .then(response => response.json())
     .then(data => {
         // Заполняем ВСЕ поля
+        updateLegalNameHeader(data.legal_name);
+
         const fields = [
             'company_name', 'legal_form', 'legal_name',
             'inn', 'ogrn', 'director_fio',
@@ -580,7 +785,35 @@ function closeModal() {
     document.getElementById('leadModal').style.display = 'none';
 }
 
-// Замени функцию saveLead на это:
+// Функция для обновления юр. названия вверху
+function updateLegalNameHeader(legalName) {
+    const headerElement = document.getElementById('modal_legal_name_base');
+    if (legalName) {
+        headerElement.textContent = legalName;
+        headerElement.style.display = 'block';
+    } else {
+        headerElement.textContent = 'Новый лид';
+        headerElement.style.display = 'block';
+    }
+}
+
+function applyPriorityColors() {
+    const cards = document.querySelectorAll('.kanban-card');
+
+    cards.forEach(card => {
+        const priority = card.dataset.priority || 'not_set';
+
+        // Убираем старые классы
+        card.classList.remove('priority-not_set', 'priority-low', 'priority-high', 'priority-critical');
+
+        // Добавляем правильный класс
+        card.classList.add(`priority-${priority}`);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', applyPriorityColors);
+
+// Функция сохранения лида
 function saveLead() {
     if (!currentLeadId) return;
 
@@ -602,9 +835,23 @@ function saveLead() {
         }
     });
 
-    // Проверка обязательного поля
-    if (!data.company_name.trim()) {
-        alert('Название компании обязательно!');
+    // Проверка ОБЯЗАТЕЛЬНЫХ полей
+    const requiredFields = [
+        { name: 'company_name', label: 'Название компании' },
+        { name: 'legal_form', label: 'Форма организации' },
+        { name: 'legal_name', label: 'Юридическое название' }
+    ];
+
+    const missingFields = [];
+
+    requiredFields.forEach(field => {
+        if (!data[field.name] || !data[field.name].trim()) {
+            missingFields.push(field.label);
+        }
+    });
+
+    if (missingFields.length > 0) {
+        alert('Заполните обязательные поля:\n• ' + missingFields.join('\n• '));
         return;
     }
 
@@ -624,7 +871,14 @@ function saveLead() {
         } else {
             // Обновляем карточку на доске
             updateCardOnBoard(currentLeadId, data);
-            alert('Сохранено!');
+
+            // Обновляем заголовок
+            updateLegalNameHeader(data.legal_name);
+
+            // Показываем уведомление
+            showNotification('Сохранено!', 'success');
+
+            applyPriorityColors();
         }
     });
 }

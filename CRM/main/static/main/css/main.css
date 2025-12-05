@@ -165,31 +165,19 @@ main .crm {
 }
 
 .kanban-card {
-    background: #3a3a3a;
-    color: #fff;
-    padding: 10px;
+    background: #2b2b2b;
     border-radius: 8px;
-    cursor: grab;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    padding: 15px;
+    margin-bottom: 10px;
+    cursor: move;
+    border-left: 4px solid transparent;
+    transition: all 0.2s;
 }
 
 .kanban-card span {
     outline: none;
 }
 
-.delete-btn {
-    background: none;
-    border: none;
-    color: #aaa;
-    font-size: 20px;
-    cursor: pointer;
-}
-
-.delete-btn:hover {
-    color: #ff4c4c;
-}
 
 .dragging {
     opacity: 0.5;
