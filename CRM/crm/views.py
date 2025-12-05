@@ -112,20 +112,43 @@ def update_lead(request, lead_id):
 
 @login_required
 def get_lead(request, lead_id):
-    """Получить данные лида для модального окна"""
     try:
         lead = Lead.objects.get(id=lead_id)
         return JsonResponse({
-            "id": lead.id,
-            "company_name": lead.company_name,
-            "inn": lead.inn or "",
-            "ogrn": lead.ogrn or "",
-            "director_fio": lead.director_fio or "",
-            "phone": lead.phone or "",
-            "email": lead.email or "",
-            "comment": lead.comment or "",
-            "created_at": lead.created_at.strftime("%d.%m.%Y"),
-            "column_id": lead.column_id
+            # Основные поля
+            'id': lead.id,
+            'company_name': lead.company_name,
+            'legal_form': lead.legal_form or '',
+            'legal_name': lead.legal_name or '',
+
+            # Реквизиты
+            'inn': lead.inn or '',
+            'ogrn': lead.ogrn or '',
+            'director_fio': lead.director_fio or '',
+
+            # Контакты
+            'contact_person': lead.contact_person or '',
+            'contact_phone': lead.contact_phone or '',
+            'contact_email': lead.contact_email or '',
+            'phone': lead.phone or '',
+            'email': lead.email or '',
+
+            # Адрес
+            'address': lead.address or '',
+            'city': lead.city or '',
+
+            # Партнёр
+            'partner_name': lead.partner_name or '',
+            'partner_position': lead.partner_position or '',
+            'partner_phone': lead.partner_phone or '',
+
+            # Дополнительно
+            'website': lead.website or '',
+            'source': lead.source or '',
+            'priority': lead.priority or '',
+            'comment': lead.comment or '',
+
+            'created_at': lead.created_at.strftime("%d.%m.%Y")
         })
     except Lead.DoesNotExist:
         return JsonResponse({"error": "Лид не найден"}, status=404)
@@ -138,38 +161,23 @@ def update_lead(request, lead_id):
             data = json.loads(request.body)
             lead = Lead.objects.get(id=lead_id)
 
-            # Обновляем поля, если они есть в запросе
-            if 'company_name' in data:
-                lead.company_name = data['company_name']
-            if 'inn' in data:
-                lead.inn = data['inn']
-            if 'ogrn' in data:
-                lead.ogrn = data['ogrn']
-            if 'director_fio' in data:
-                lead.director_fio = data['director_fio']
-            if 'phone' in data:
-                lead.phone = data['phone']
-            if 'email' in data:
-                lead.email = data['email']
-            if 'comment' in data:
-                lead.comment = data['comment']
+            # Обновляем ВСЕ поля
+            fields_to_update = [
+                'company_name', 'legal_form', 'legal_name',
+                'inn', 'ogrn', 'director_fio',
+                'contact_person', 'contact_phone', 'contact_email', 'phone', 'email',
+                'address', 'city',
+                'partner_name', 'partner_position', 'partner_phone',
+                'website', 'source', 'priority', 'comment'
+            ]
+
+            for field in fields_to_update:
+                if field in data:
+                    setattr(lead, field, data[field] or None)
 
             lead.save()
-
-            return JsonResponse({
-                "status": "success",
-                "company_name": lead.company_name,
-                "inn": lead.inn,
-                "ogrn": lead.ogrn,
-                "director_fio": lead.director_fio,
-                "phone": lead.phone,
-                "email": lead.email,
-                "comment": lead.comment
-            })
+            return JsonResponse({"status": "success"})
 
         except Lead.DoesNotExist:
             return JsonResponse({"error": "Лид не найден"}, status=404)
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
-
     return JsonResponse({"error": "Метод не разрешен"}, status=405)

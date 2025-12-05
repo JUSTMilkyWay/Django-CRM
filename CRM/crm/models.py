@@ -25,6 +25,28 @@ class Lead(models.Model):
     email = models.EmailField(blank=True, null=True)
     comment = models.TextField(blank=True, null=True)
 
+    legal_form = models.CharField(max_length=20, blank=True, null=True, verbose_name='Форма организации')
+    legal_name = models.CharField(max_length=300, blank=True, null=True, verbose_name='Юридическое название')
+
+    # Контактная информация (раздел)
+    contact_person = models.CharField(max_length=200, blank=True, null=True, verbose_name='Контактное лицо')
+    contact_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name='Контактный телефон')
+    contact_email = models.EmailField(blank=True, null=True, verbose_name='Контактный email')
+
+    # Адрес (раздел)
+    address = models.TextField(blank=True, null=True, verbose_name='Адрес')
+    city = models.CharField(max_length=100, blank=True, null=True, verbose_name='Город')
+
+    # Партнёр (раздел)
+    partner_name = models.CharField(max_length=200, blank=True, null=True, verbose_name='Партнёр (ФИО)')
+    partner_position = models.CharField(max_length=200, blank=True, null=True, verbose_name='Должность партнёра')
+    partner_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name='Телефон партнёра')
+
+    # Дополнительно (раздел)
+    website = models.URLField(blank=True, null=True, verbose_name='Сайт')
+    source = models.CharField(max_length=100, blank=True, null=True, verbose_name='Источник')
+    priority = models.CharField(max_length=20, blank=True, null=True, verbose_name='Приоритет')
+
     column = models.ForeignKey(
         KanbanColumn,
         on_delete=models.CASCADE,

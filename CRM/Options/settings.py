@@ -21,7 +21,6 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'main',
     'crm',
-    'user_auth',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -45,7 +44,7 @@ ROOT_URLCONF = 'Options.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ['templates/main', 'templates/user_auth', 'templates/crm'],
+        'DIRS': ['templates/main', 'templates/crm'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
