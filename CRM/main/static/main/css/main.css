@@ -129,7 +129,7 @@ main .crm {
     padding-bottom: 10px;
     margin-bottom: 15px;
     font-size: 20px;
-    color: #8d48e8;
+    color: #e5e5e5;
     border-bottom: 1px solid #555;
 }
 
@@ -145,7 +145,7 @@ main .crm {
 
 .add-card-btn {
     background: none;
-    color: #8d48e8;
+    color: #eae8ff;
     border: 1px dashed #8d48e8;
     padding: 5px 10px;
     border-radius: 5px;
@@ -165,7 +165,7 @@ main .crm {
 }
 
 .kanban-card {
-    background: #2b2b2b;
+    background: #eae8ff;
     border-radius: 8px;
     padding: 15px;
     margin-bottom: 10px;

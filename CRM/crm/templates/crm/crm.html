@@ -7,7 +7,7 @@
     <div class="crm-header">
         <button class="crm-btn active">Лиды</button>
         <button class="crm-btn">ToDo</button>
-        <button class="crm-btn" onclick="openSettings()">Настройки</button>
+        <button class="crm-btn" onclick="window.location.href='{% url 'crm_settings' %}'">Настройки</button>
     </div>
 
     <div class="kanban">
@@ -203,6 +203,7 @@
             </div>
         <div class="form-buttons">
             <button class="btn-save" onclick="saveLead()">Сохранить</button>
+            <button class="api-checko-btn" title="Запрос по инн" onclick="makeRequestChecko">Запрос по инн</button>
             <button class="delete-btn" title="Удалить" onclick="deleteCurrentLead()">Удалить</button>
         </div>
     </div>
@@ -217,7 +218,7 @@
 }
 .column-count {
     background: rgba(141, 72, 232, 0.2);
-    color: #8d48e8;
+    color: #eae8ff;;
     padding: 2px 8px;
     border-radius: 12px;
     font-size: 14px;
@@ -382,6 +383,7 @@
 }
 
 .btn-save,
+.api-checko-btn,
 .delete-btn {
     height: 48px;
     border-radius: 6px;
@@ -397,6 +399,16 @@
     flex: 1;
     background: #8d48e8;
     color: white;
+}
+
+.api-checko-btn {
+    flex: 0 0 auto;
+    width: 300px;
+    background: #f57c00;
+    color: white;
+}
+.api-checko-btn:hover {
+    background: #c76300;
 }
 
 .delete-btn {
@@ -678,7 +690,7 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         notification.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => notification.remove(), 300);
-    }, 3000);
+    }, 500);
 }
 
 document.head.insertAdjacentHTML('beforeend', `

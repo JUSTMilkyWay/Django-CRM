@@ -8,4 +8,8 @@ urlpatterns = [
     path('move_lead/<int:lead_id>/', views.move_lead, name='move_lead'),
     path('update_lead/<int:lead_id>/', views.update_lead, name='update_lead'),
     path('get_lead/<int:lead_id>/', views.get_lead, name='get_lead'),
+
+    path('settings/', views.crm_settings, name='crm_settings'),
+    path('update_columns/', views.update_columns, name='update_columns'),
+    path('reset_columns/', views.reset_columns, name='reset_columns'),
 ]
