@@ -1,10 +1,20 @@
-{% extends 'main/layout.html' %}  
-  
-{% block title %}Главная{% endblock %}
-  
+{% extends 'main/layout.html' %}
+{% block title %}Главная — Bit CRM{% endblock %}
+
 {% block content %}
-    <div class="home">
-        <h1>Главная страница</h1>
-        <p>Главная страница</p>
+<div class="container mt-5" style="color: white;">
+    <div class="text-center">
+        <h1>Добро пожаловать в CRM</h1>
+        <p class="lead">Система управления заявок клиентов</p>
+
+        {% if user.is_authenticated %}
+            <a href="{% url 'crm_page' %}" class="btn btn-primary btn-lg">Перейти в CRM</a>
+        {% else %}
+            <div class="mt-4">
+                <a href="{% url 'login' %}" class="btn btn-outline-primary me-2">Войти</a>
+                <a href="{% url 'signup' %}" class="btn btn-success">Регистрация</a>
+            </div>
+        {% endif %}
     </div>
+</div>
 {% endblock %}

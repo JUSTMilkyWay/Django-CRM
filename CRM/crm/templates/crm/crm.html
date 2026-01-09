@@ -6,7 +6,7 @@
 <div class="crm crm-page">
     <div class="crm-header">
         <a href="{% url 'crm_page' %}"><button class="crm-btn active">Лиды</button></a>
-        <button class="crm-btn">ToDo</button>
+        <button class="crm-btn"><span style="text-decoration: line-through;">ToDo</span></button>
         <a href="{% url 'crm_settings' %}"><button class="crm-btn">Настройки</button></a>
     </div>
 
@@ -74,6 +74,7 @@
                                 <option value="ООО">ООО</option>
                                 <option value="АО">АО</option>
                                 <option value="ЗАО">ЗАО</option>
+                                <option value="другая">Другая</option>
                             </select>
                         </div>
                         <div class="form-group" style="flex: 2;">
@@ -105,6 +106,35 @@
                     <div class="form-group">
                         <label>Генеральный директор</label>
                             <input type="text" id="modal_director_fio">
+                    </div>
+                </div>
+                <!-- Раздел 7: Заявка на финансирование -->
+                <div class="form-section">
+                    <h3>Заявка</h3>
+
+                    <!-- Цель кредита -->
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 2;">
+                            <label>Цель финансирования</label>
+                            <select id="modal_credit_purpose">
+                                <option value="">Не выбрано</option>
+                                <option value="кредит">Кредит</option>
+                                <option value="лизинг">Лизинг</option>
+                                <option value="овердрафт">Овердрафт</option>
+                                <option value="инвестиции">Инвестиции</option>
+                                <option value="другое">Другое</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Сумма (₽)</label>
+                            <input type="number" id="modal_amount" placeholder="0">
+                        </div>
+                    </div>
+
+                    <!-- Комментарий клиента -->
+                    <div class="form-group">
+                        <label>Комментарий клиента</label>
+                        <textarea id="modal_client_comment" rows="2" placeholder="Из заявки"></textarea>
                     </div>
                 </div>
 
@@ -183,6 +213,7 @@
                                 <option value="рекомендация">Рекомендация</option>
                                 <option value="холодный звонок">Холодный звонок</option>
                                 <option value="мероприятие">Мероприятие</option>
+                                <option value="другое">Другое</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -196,7 +227,7 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Комментарий</label>
+                        <label>Комментарий брокера</label>
                         <textarea id="modal_comment" rows="3"></textarea>
                     </div>
                 </div>
@@ -471,6 +502,15 @@
     margin-bottom: 30px;
     padding-bottom: 20px;
     border-bottom: 1px solid #444;
+}
+
+#modal_inn {
+    border: 2px solid #f57c00 !important;
+    background: rgba(245, 124, 0, 0.05) !important;
+}
+
+#modal_inn:focus {
+    box-shadow: 0 0 0 3px rgba(245, 124, 0, 0.25) !important;
 }
 
 .form-section:last-child {
@@ -1027,10 +1067,34 @@ function fillFormWithCompanyData(companyData) {
                 fieldElement.value = value;
             }
         }
+
+        const companyName = document.getElementById('modal_company_name').value;
+        document.getElementById('modal_legal_form').value = detectLegalForm(companyName);
     }
 
     // Обновляем заголовок с юр. названием
     updateLegalNameHeader(data['НаимПолн'] || data['НаимСокр'] || data.legal_name || data.company_name);
+}
+
+function detectLegalForm(companyName) {
+    if (!companyName) return 'другая';
+
+    const name = companyName.trim().toUpperCase();
+
+    if (name.includes('ООО') || name.includes('ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ')) {
+        return 'ООО';
+    }
+    if (name.includes('АО') || name.includes('АКЦИОНЕРНОЕ ОБЩЕСТВО')) {
+        return 'АО';
+    }
+    if (name.includes('ЗАО') || name.includes('ЗАКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО')) {
+        return 'ЗАО';
+    }
+    if (name.includes('ИП') || name.includes('ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ')) {
+        return 'ИП';
+    }
+
+    return 'другая';
 }
 
 // Вспомогательные функции для извлечения данных
