@@ -5,8 +5,11 @@
 {% block content %}
 <div class="crm-settings-page">
     <div class="settings-header">
-        <h1>Настройки CRM</h1>
-        <a href="{% url 'crm_page' %}" class="btn-back">← Назад к CRM</a>
+        <div class="crm-header">
+            <a href="{% url 'crm_page' %}"><button class="crm-btn">Лиды</button></a>
+            <button class="crm-btn">ToDo</button>
+            <a href="{% url 'crm_settings' %}"><button class="crm-btn active">Настройки</button></a>
+        </div>
     </div>
 
     <div class="settings-sections">

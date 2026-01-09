@@ -5,9 +5,9 @@
 {% block content %}
 <div class="crm crm-page">
     <div class="crm-header">
-        <button class="crm-btn active">Лиды</button>
+        <a href="{% url 'crm_page' %}"><button class="crm-btn active">Лиды</button></a>
         <button class="crm-btn">ToDo</button>
-        <button class="crm-btn" onclick="window.location.href='{% url 'crm_settings' %}'">Настройки</button>
+        <a href="{% url 'crm_settings' %}"><button class="crm-btn">Настройки</button></a>
     </div>
 
     <div class="kanban">
@@ -203,7 +203,7 @@
             </div>
         <div class="form-buttons">
             <button class="btn-save" onclick="saveLead()">Сохранить</button>
-            <button class="api-checko-btn" title="Запрос по инн" onclick="makeRequestChecko">Запрос по инн</button>
+            <button class="api-checko-btn" title="Запрос по инн" onclick="makeRequestChecko()">Запрос по инн</button>
             <button class="delete-btn" title="Удалить" onclick="deleteCurrentLead()">Удалить</button>
         </div>
     </div>
@@ -899,5 +899,213 @@ function saveLead() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('CRM страница загружена');
 });
+
+function makeRequestChecko() {
+    // Получаем ИНН из формы
+    const inn = document.getElementById('modal_inn').value.trim();
+
+    if (!inn) {
+        alert('Введите ИНН для запроса');
+        document.getElementById('modal_inn').focus();
+        return;
+    }
+
+    // Проверка формата ИНН
+    if (!/^\d{10}$|^\d{12}$/.test(inn)) {
+        alert('ИНН должен содержать 10 или 12 цифр');
+        return;
+    }
+
+    // Показываем загрузку
+    const button = document.querySelector('.api-checko-btn');
+    const originalText = button.textContent;
+    button.textContent = 'Загрузка...';
+    button.disabled = true;
+
+    console.log('Запрос данных для ИНН:', inn);
+
+    // Отправляем запрос к вашему API
+    fetch('/companies/api/get_company/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ inn: inn })
+    })
+    .then(response => {
+        console.log('Статус ответа:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP ошибка: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Получены данные:', data);
+
+        button.textContent = originalText;
+        button.disabled = false;
+
+        if (data.success) {
+            // Заполняем поля формы данными из API
+            fillFormWithCompanyData(data.data);
+            showNotification('Данные компании загружены из Checko', 'success');
+        } else {
+            showNotification('Ошибка: ' + (data.error || 'Не удалось получить данные'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка запроса:', error);
+        button.textContent = originalText;
+        button.disabled = false;
+        showNotification('Ошибка сети: ' + error.message, 'error');
+    });
+}
+
+function fillFormWithCompanyData(companyData) {
+    console.log('Полученные данные компании (верхний уровень):', companyData);
+    console.log('Raw data:', companyData.raw_data);
+
+    // Извлекаем данные из raw_data.data если они там
+    let data = companyData;
+    if (companyData.raw_data && companyData.raw_data.data) {
+        console.log('Используем данные из raw_data.data');
+        data = companyData.raw_data.data;
+    }
+
+    // Маппинг полей с данными из Checko API
+    const fieldMapping = {
+        // Компания
+        'modal_company_name': ['НаимСокр', 'НаимПолн', 'company_name'],
+        'modal_legal_name': ['НаимПолн', 'НаимСокр', 'legal_name'],
+        'modal_legal_form': ['ОКОПФ.Наим', 'legal_form'],
+
+        // Реквизиты
+        'modal_inn': ['ИНН', 'inn'],
+        'modal_ogrn': ['ОГРН', 'ogrn'],
+        'modal_kpp': ['КПП', 'kpp'],
+
+        // Руководство
+        'modal_director_fio': getDirectorName(data),
+
+        // Адрес
+        'modal_address': getAddress(data),
+        'modal_city': getCity(data),
+
+        // Контакты
+        'modal_phone': getPhone(data),
+        'modal_email': getEmail(data),
+        'modal_website': ['Контакты.ВебСайт', 'website']
+    };
+
+    console.log('Маппинг полей:', fieldMapping);
+
+    // Заполняем каждое поле
+    for (const [fieldId, fieldValue] of Object.entries(fieldMapping)) {
+        const fieldElement = document.getElementById(fieldId);
+        if (!fieldElement) {
+            console.log(`Поле ${fieldId} не найдено на странице`);
+            continue;
+        }
+
+        // Если значение - функция, вызываем её
+        let value = typeof fieldValue === 'function' ? fieldValue() : fieldValue;
+
+        // Если значение - массив, ищем первый существующий ключ
+        if (Array.isArray(value)) {
+            value = findValueByKeys(data, value);
+        }
+
+        console.log(`Поле ${fieldId}: значение = ${value}`);
+
+        // Заполняем поле, если нашли значение
+        if (value !== null && value !== undefined && value !== '') {
+            if (fieldElement.type === 'select-one') {
+                fieldElement.value = value;
+            } else {
+                fieldElement.value = value;
+            }
+        }
+    }
+
+    // Обновляем заголовок с юр. названием
+    updateLegalNameHeader(data['НаимПолн'] || data['НаимСокр'] || data.legal_name || data.company_name);
+}
+
+// Вспомогательные функции для извлечения данных
+function findValueByKeys(data, keys) {
+    for (const key of keys) {
+        const value = getNestedValue(data, key);
+        if (value !== null && value !== undefined && value !== '') {
+            return value;
+        }
+    }
+    return null;
+}
+
+function getNestedValue(obj, path) {
+    return path.split('.').reduce((current, key) => {
+        return current && current[key] !== undefined ? current[key] : null;
+    }, obj);
+}
+
+function getDirectorName(data) {
+    // Проверяем массив Руковод
+    if (data.Руковод && Array.isArray(data.Руковод) && data.Руковод.length > 0) {
+        const director = data.Руковод[0];
+        if (director.ФИО) {
+            return director.ФИО;
+        }
+    }
+    return null;
+}
+
+function getAddress(data) {
+    // Проверяем ЮрАдрес
+    if (data.ЮрАдрес && data.ЮрАдрес.АдресРФ) {
+        return data.ЮрАдрес.АдресРФ;
+    }
+    if (data.ЮрАдрес && data.ЮрАдрес.НасПункт) {
+        return data.ЮрАдрес.НасПункт;
+    }
+    return null;
+}
+
+function getCity(data) {
+    // Проверяем Регион
+    if (data.Регион && data.Регион.Наим) {
+        return data.Регион.Наим;
+    }
+    if (data.ЮрАдрес && data.ЮрАдрес.НасПункт) {
+        // Извлекаем город из адреса
+        const address = data.ЮрАдрес.НасПункт;
+        const cityMatch = address.match(/г\.\s*([^,]+)/);
+        if (cityMatch) {
+            return cityMatch[1].trim();
+        }
+        return address;
+    }
+    return null;
+}
+
+function getPhone(data) {
+    // Проверяем Контакты.Тел
+    if (data.Контакты && data.Контакты.Тел && Array.isArray(data.Контакты.Тел) && data.Контакты.Тел.length > 0) {
+        return data.Контакты.Тел[0];
+    }
+    return null;
+}
+
+function getEmail(data) {
+    // Проверяем Контакты.Емэйл
+    if (data.Контакты && data.Контакты.Емэйл && Array.isArray(data.Контакты.Емэйл) && data.Контакты.Емэйл.length > 0) {
+        return data.Контакты.Емэйл[0];
+    }
+    return null;
+}
+
+
+
 </script>
 {% endblock %}

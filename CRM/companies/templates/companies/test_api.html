@@ -1,0 +1,267 @@
+{% extends 'main/layout.html' %}
+{% load static %}
+{% block title %}Тест API Checko{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Тестирование API Checko</h1>
+    
+    <div class="card mt-4">
+        <div class="card-header">
+            <h3>Запрос данных по ИНН</h3>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label for="innInput" class="form-label">Введите ИНН компании:</label>
+                <input type="text" class="form-control" id="innInput" 
+                       placeholder="Например: 7707083893" maxlength="12">
+                <div class="form-text">ИНН должен содержать 10 или 12 цифр</div>
+            </div>
+            
+            <button class="btn btn-primary" onclick="getCompanyData()">
+                <span id="loader" style="display: none;" class="spinner-border spinner-border-sm"></span>
+                Получить данные
+            </button>
+            
+            <div id="result" class="mt-4" style="display: none;">
+                <h4>Результат:</h4>
+                <div class="alert alert-success" role="alert">
+                    <pre id="resultData" class="mb-0"></pre>
+                </div>
+                
+                <div class="mt-3">
+                    <h5>Основные поля:</h5>
+                    <table class="table table-bordered">
+                        <tbody id="resultTable">
+                            <!-- Данные будут заполнены здесь -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="error" class="alert alert-danger mt-3" style="display: none;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCompanyData() {
+    const inn = document.getElementById('innInput').value.trim();
+    const loader = document.getElementById('loader');
+    const resultDiv = document.getElementById('result');
+    const errorDiv = document.getElementById('error');
+    
+    // Скрываем предыдущие результаты
+    resultDiv.style.display = 'none';
+    errorDiv.style.display = 'none';
+    
+    // Проверка ИНН
+    if (!inn) {
+        errorDiv.textContent = 'Пожалуйста, введите ИНН';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    if (!/^\d{10}$|^\d{12}$/.test(inn)) {
+        errorDiv.textContent = 'ИНН должен содержать 10 или 12 цифр';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    // Показываем loader
+    loader.style.display = 'inline-block';
+    
+    // Отправляем запрос
+    fetch('/companies/api/get_company/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken(),
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({ inn: inn })
+    })
+    .then(response => response.json())
+    .then(data => {
+        loader.style.display = 'none';
+        
+        if (data.success) {
+            // Показываем полные данные
+            document.getElementById('resultData').textContent = 
+                JSON.stringify(data.data, null, 2);
+            
+            // Заполняем таблицу
+            const tableBody = document.getElementById('resultTable');
+            tableBody.innerHTML = '';
+            
+            const fields = [
+                { key: 'company_name', label: 'Название компании' },
+                { key: 'legal_name', label: 'Юридическое название' },
+                { key: 'legal_form', label: 'Форма организации' },
+                { key: 'inn', label: 'ИНН' },
+                { key: 'ogrn', label: 'ОГРН' },
+                { key: 'kpp', label: 'КПП' },
+                { key: 'address', label: 'Адрес' },
+                { key: 'city', label: 'Город' },
+                { key: 'director_fio', label: 'Генеральный директор' },
+                { key: 'phone', label: 'Телефон' },
+                { key: 'email', label: 'Email' },
+                { key: 'status', label: 'Статус' },
+                { key: 'registration_date', label: 'Дата регистрации' },
+            ];
+            
+            fields.forEach(field => {
+                if (data.data[field.key]) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><strong>${field.label}</strong></td>
+                        <td>${data.data[field.key]}</td>
+                    `;
+                    tableBody.appendChild(row);
+                }
+            });
+            
+            resultDiv.style.display = 'block';
+        } else {
+            errorDiv.textContent = data.error || 'Произошла ошибка';
+            errorDiv.style.display = 'block';
+        }
+    })
+    .catch(error => {
+        loader.style.display = 'none';
+        errorDiv.textContent = 'Ошибка сети: ' + error.message;
+        errorDiv.style.display = 'block';
+    });
+}
+
+// Функция для экспорта данных компании в Excel
+function exportCompanyExcel(inn) {
+    if (!inn) {
+        alert('ИНН не указан');
+        return;
+    }
+
+    console.log('Экспорт данных компании ИНН:', inn);
+
+    // Показываем загрузку
+    const originalButtonText = '📊 Экспорт в Excel';
+    const button = event?.target || document.querySelector('.btn-export');
+    if (button) {
+        button.textContent = 'Формирование Excel...';
+        button.disabled = true;
+    }
+
+    // Отправляем запрос на экспорт
+    fetch(`/companies/api/export_excel/${inn}/`, {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        console.log('Статус экспорта:', response.status);
+
+        if (!response.ok) {
+            throw new Error(`HTTP ошибка: ${response.status}`);
+        }
+
+        // Получаем blob (бинарные данные файла)
+        return response.blob();
+    })
+    .then(blob => {
+        // Создаем ссылку для скачивания
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+
+        // Имя файла из заголовков или генерируем
+        const filename = `company_${inn}_${new Date().toISOString().slice(0,10)}.xlsx`;
+        a.download = filename;
+
+        // Автоматически скачиваем
+        document.body.appendChild(a);
+        a.click();
+
+        // Очищаем
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        // Восстанавливаем кнопку
+        if (button) {
+            button.textContent = originalButtonText;
+            button.disabled = false;
+        }
+
+        showNotification('Excel файл успешно скачан', 'success');
+    })
+    .catch(error => {
+        console.error('Ошибка экспорта:', error);
+
+        // Восстанавливаем кнопку
+        if (button) {
+            button.textContent = originalButtonText;
+            button.disabled = false;
+        }
+
+        showNotification('Ошибка при экспорте: ' + error.message, 'error');
+    });
+}
+
+// Альтернативная версия с текущим ИНН из формы
+function exportCurrentCompanyExcel() {
+    const inn = document.getElementById('modal_inn')?.value.trim();
+    if (!inn) {
+        alert('Сначала введите ИНН компании');
+        return;
+    }
+    exportCompanyExcel(inn);
+}
+
+function getCSRFToken() {
+    // Способ 1: Из cookie
+    const name = 'csrftoken';
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+
+    // Способ 2: Из мета-тега (если есть)
+    if (!cookieValue) {
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfMeta) {
+            cookieValue = csrfMeta.getAttribute('content');
+        }
+    }
+
+    return cookieValue;
+}
+
+</script>
+
+<style>
+.card {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+pre {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.table {
+    background: white;
+}
+</style>
+{% endblock %}

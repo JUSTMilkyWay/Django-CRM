@@ -21,6 +21,9 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'main',
     'crm',
+    'companies',
+    'registration',
+    'widget_tweaks',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,11 +43,19 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'Options.urls'
+LOGOUT_REDIRECT_URL = '/'
 
+# Options/settings.py
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ['templates/main', 'templates/crm'],
+        'DIRS': [
+            BASE_DIR / 'templates',
+            BASE_DIR / 'templates/registration',
+            BASE_DIR / 'templates/main',
+            BASE_DIR / 'templates/crm',
+            BASE_DIR / 'templates/companies',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
