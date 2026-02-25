@@ -1,0 +1,683 @@
+/* === ПЕРЕМЕННЫЕ ТЕМЫ === */
+:root {
+    /* Темная тема (по умолчанию) */
+    --bg-primary: #0f1419;
+    --bg-secondary: #1a1d2b;
+    --bg-tertiary: #2d3748;
+    --bg-modal: #1e2029;
+    --bg-input: #2a2f3d;
+    --bg-card: #1e1e1e;
+
+    --border-color: #2a2f3d;
+    --border-hover: #3a3f4d;
+    --border-dashed: #3a3a3a;
+
+    --text-primary: #e2e8f0;
+    --text-secondary: #a0aec0;
+    --text-tertiary: #718096;
+    --text-muted: #4a5568;
+
+    --accent-primary: #4a5568;
+    --accent-hover: #5a6778;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+    /* Приоритеты - только для левой границы */
+    --priority-not-set: #4a5568;
+    --priority-low: #48bbb4;
+    --priority-high: #ffc107;
+    --priority-critical: #dc3545;
+
+    /* Кнопки */
+    --btn-primary: #4a5568;
+    --btn-warning: #f57c00;
+    --btn-danger: #ef4444;
+    --btn-edit: #3b82f6;
+}
+
+/* Белая тема */
+body.light-theme {
+    --bg-primary: #f5f7fa;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #e2e8f0;
+    --bg-modal: #ffffff;
+    --bg-input: #f1f5f9;
+    --bg-card: #ffffff;
+
+    --border-color: #cbd5e0;
+    --border-hover: #a0aec0;
+    --border-dashed: #cbd5e0;
+
+    --text-primary: #1a202c;
+    --text-secondary: #4a5568;
+    --text-tertiary: #718096;
+    --text-muted: #a0aec0;
+
+    --accent-primary: #4a5568;
+    --accent-hover: #2d3748;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* === KANBAN КОЛОНКИ === */
+.kanban {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 20px;
+}
+
+.kanban-column {
+    flex: 1;
+    min-width: 320px;
+    background: transparent;
+    border: none;
+    border-right: 2px dashed var(--border-dashed);
+    padding: 20px;
+    min-height: 500px;
+}
+
+.kanban-column:last-child {
+    border-right: none;
+}
+
+.column-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.column-header h2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.column-count {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.add-card-btn {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 2px dashed var(--border-dashed);
+    border-radius: 8px;
+    color: var(--text-tertiary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 16px;
+}
+
+.add-card-btn:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--border-hover);
+    color: var(--text-secondary);
+}
+
+/* === КАРТОЧКИ KANBAN === */
+.kanban-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-left-width: 3px;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 12px;
+    cursor: grab;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+}
+
+.kanban-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+}
+
+.kanban-card:active {
+    cursor: grabbing;
+}
+
+.kanban-card.dragging {
+    opacity: 0.5;
+}
+
+/* Приоритеты - только левая граница */
+.kanban-card.priority-not_set {
+    border-left-color: var(--priority-not-set);
+}
+
+.kanban-card.priority-low {
+    border-left-color: var(--priority-low);
+}
+
+.kanban-card.priority-high {
+    border-left-color: var(--priority-high);
+}
+
+.kanban-card.priority-critical {
+    border-left-color: var(--priority-critical);
+}
+
+/* === СОДЕРЖИМОЕ КАРТОЧКИ === */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    gap: 8px;
+}
+
+.lead-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.lead-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lead-info small {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+/* Динамические поля карточки */
+.card-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.card-field-icon {
+    width: 14px;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 11px;
+}
+
+.card-field-label {
+    color: var(--text-muted);
+    font-size: 11px;
+    min-width: 60px;
+}
+
+.card-field-value {
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Метаданные карточки */
+.card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.priority-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.priority-badge.not_set {
+    background: rgba(74, 85, 104, 0.1);
+    color: var(--priority-not-set);
+}
+
+.priority-badge.low {
+    background: rgba(72, 187, 180, 0.1);
+    color: var(--priority-low);
+}
+
+.priority-badge.high {
+    background: rgba(255, 193, 7, 0.1);
+    color: var(--priority-high);
+}
+
+.priority-badge.critical {
+    background: rgba(220, 53, 69, 0.1);
+    color: var(--priority-critical);
+}
+
+.card-date {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* === ДЕЙСТВИЯ С КАРТОЧКОЙ === */
+.card-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.kanban-card:hover .card-actions {
+    opacity: 1;
+}
+
+.card-action-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+}
+
+.card-action-btn:hover {
+    transform: scale(1.05);
+}
+
+.card-action-btn.edit:hover {
+    background: var(--btn-edit);
+    border-color: var(--btn-edit);
+    color: white;
+}
+
+.card-action-btn.delete:hover {
+    background: var(--btn-danger);
+    border-color: var(--btn-danger);
+    color: white;
+}
+
+/* === МОДАЛЬНОЕ ОКНО === */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.75);
+    overflow: hidden;
+    backdrop-filter: blur(2px);
+}
+
+.modal-content {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 500px;
+    max-width: 100%;
+    background: var(--bg-modal);
+    padding: 30px;
+    color: var(--text-primary);
+    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.close {
+    color: var(--text-tertiary);
+    float: right;
+    font-size: 28px;
+    cursor: pointer;
+    line-height: 1;
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    z-index: 10;
+    transition: color 0.2s;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.close:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+}
+
+.company-base-info h2 {
+    color: var(--text-primary);
+    margin: 0 0 24px 0;
+    font-size: 20px;
+    font-weight: 600;
+    padding-right: 40px;
+}
+
+.modal-content > h3 {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+/* Контейнер с прокруткой */
+#modalBody {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 10px;
+    margin-right: -10px;
+}
+
+#modalBody::-webkit-scrollbar {
+    width: 6px;
+}
+
+#modalBody::-webkit-scrollbar-track {
+    background: var(--bg-input);
+    border-radius: 3px;
+}
+
+#modalBody::-webkit-scrollbar-thumb {
+    background: var(--accent-primary);
+    border-radius: 3px;
+}
+
+/* === ФОРМА === */
+.form-section {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.form-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.form-section h3 {
+    color: var(--text-primary);
+    font-size: 14px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.form-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(74, 85, 104, 0.1);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 60px;
+    line-height: 1.5;
+}
+
+.form-group select {
+    cursor: pointer;
+}
+
+/* Выделение поля ИНН */
+#modal_inn {
+    border: 2px solid var(--btn-warning);
+    background: rgba(245, 124, 0, 0.05);
+}
+
+#modal_inn:focus {
+    box-shadow: 0 0 0 3px rgba(245, 124, 0, 0.1);
+}
+
+/* === КНОПКИ === */
+.form-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+    flex-shrink: 0;
+}
+
+.btn-save,
+.api-checko-btn,
+.delete-btn {
+    height: 44px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.btn-save {
+    flex: 1;
+    background: var(--btn-primary);
+    color: white;
+}
+
+.btn-save:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.api-checko-btn {
+    flex: 0 0 auto;
+    padding: 0 16px;
+    background: var(--btn-warning);
+    color: white;
+}
+
+.api-checko-btn:hover {
+    background: #d66b00;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(245, 124, 0, 0.3);
+}
+
+.api-checko-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.delete-btn {
+    flex: 0 0 auto;
+    width: 44px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-tertiary);
+}
+
+.delete-btn:hover {
+    background: var(--btn-danger);
+    border-color: var(--btn-danger);
+    color: white;
+    transform: translateY(-1px);
+}
+
+/* === УВЕДОМЛЕНИЯ === */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 6px;
+    z-index: 10000;
+    color: white;
+    font-weight: 500;
+    font-size: 14px;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.notification.success {
+    background: #10b981;
+}
+
+.notification.error {
+    background: #ef4444;
+}
+
+/* === АНИМАЦИИ === */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* === АДАПТИВНОСТЬ === */
+@media (max-width: 1024px) {
+    .kanban-column {
+        min-width: 280px;
+    }
+
+    .modal-content {
+        width: 60%;
+    }
+}
+
+@media (max-width: 768px) {
+    .kanban-column {
+        min-width: 260px;
+    }
+
+    .modal-content {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .form-row {
+        flex-direction: column;
+    }
+
+    .form-buttons {
+        flex-wrap: wrap;
+    }
+
+    .api-checko-btn {
+        flex: 1;
+        width: 100%;
+    }
+}
+
+/* === ДОПОЛНИТЕЛЬНЫЕ УТИЛИТЫ === */
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}

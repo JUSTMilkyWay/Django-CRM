@@ -1,8 +1,12 @@
 {% extends 'main/layout.html' %}
 {% load static %}
+
 {% block title %}CRM{% endblock %}
 
 {% block content %}
+<!-- Подключаем CRM CSS -->
+<link rel="stylesheet" href="{% static 'crm/css/kanban.css' %}">
+
 <div class="crm crm-page">
     <div class="crm-header">
         <a href="{% url 'crm_page' %}"><button class="crm-btn active">Лиды</button></a>
@@ -12,12 +16,14 @@
 
     <div class="kanban">
         {% for column in columns %}
-        <div class="kanban-column" ondragover="allowDrop(event)" ondrop="drop(event, {{ column.id }})" style="border-left: 4px solid {{ column.color }};">
+        <div class="kanban-column" ondragover="allowDrop(event)" ondrop="drop(event, {{ column.id }})">
             <div class="column-header">
                 <h2>{{ column.title }}</h2>
                 <span class="column-count">{{ column.leads.count }}</span>
             </div>
-            <button class="add-card-btn" onclick="addCard(this, {{ column.id }})">+</button>
+            <button class="add-card-btn" onclick="addCard(this, {{ column.id }})">
+                <i class="fas fa-plus"></i> Добавить лид
+            </button>
             <div class="kanban-cards" id="column-{{ column.id }}">
                 {% for lead in column.leads.all %}
                     {% with priority=lead.priority|default:'not_set' %}
@@ -26,20 +32,73 @@
                          draggable="true"
                          ondragstart="drag(event)"
                          data-priority="{{ priority }}">
-                        <div class="lead-info">
-                            <strong>{{ lead.company_name }}</strong>
-                            {% if lead.inn %}<small>ИНН: {{ lead.inn }}</small>{% endif %}
-                            <div class="lead-meta">
-                                {{ lead.created_at|date:"d.m.Y" }}
-                                {% if priority != 'not_set' %}
-                                <span class="priority-indicator" title="Приоритет: {{ lead.get_priority_display }}">
-                                    {{ lead.get_priority_display }}
-                                </span>
-                                {% endif %}
+
+                        <div class="card-header">
+                            <div class="lead-info">
+                                <div class="lead-name">{{ lead.company_name }}</div>
+                                {% if lead.inn %}<small>ИНН: {{ lead.inn }}</small>{% endif %}
+                            </div>
+                            <div class="card-actions">
+                                <button class="card-action-btn edit"
+                                        title="Редактировать"
+                                        onclick="event.stopPropagation(); editLead({{ lead.id }})">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                                <button class="card-action-btn delete"
+                                        title="Удалить"
+                                        onclick="event.stopPropagation(); confirmDelete({{ lead.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </div>
-                        <div class="card-actions">
-                            <button class="edit-btn" title="Редактировать" onclick="editLead({{ lead.id }})">✎</button>
+
+                        <!-- Динамические поля -->
+                        <div class="card-fields">
+                            {% if lead.contact_person %}
+                            <div class="card-field">
+                                <span class="card-field-icon"><i class="fas fa-user"></i></span>
+                                <span class="card-field-value">{{ lead.contact_person }}</span>
+                            </div>
+                            {% endif %}
+
+                            {% if lead.contact_phone %}
+                            <div class="card-field">
+                                <span class="card-field-icon"><i class="fas fa-phone"></i></span>
+                                <span class="card-field-value">{{ lead.contact_phone }}</span>
+                            </div>
+                            {% endif %}
+
+                            {% if lead.contact_email %}
+                            <div class="card-field">
+                                <span class="card-field-icon"><i class="fas fa-envelope"></i></span>
+                                <span class="card-field-value">{{ lead.contact_email }}</span>
+                            </div>
+                            {% endif %}
+
+                            {% if lead.city %}
+                            <div class="card-field">
+                                <span class="card-field-icon"><i class="fas fa-map-marker-alt"></i></span>
+                                <span class="card-field-value">{{ lead.city }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="card-footer">
+                            <span class="priority-badge {{ priority }}">
+                                {% if priority == 'critical' %}
+                                    <i class="fas fa-exclamation-circle"></i> Критический
+                                {% elif priority == 'high' %}
+                                    <i class="fas fa-arrow-up"></i> Высокий
+                                {% elif priority == 'low' %}
+                                    <i class="fas fa-arrow-down"></i> Низкий
+                                {% else %}
+                                    <i class="fas fa-minus"></i> Обычный
+                                {% endif %}
+                            </span>
+                            <span class="card-date">
+                                <i class="fas fa-clock"></i>
+                                {{ lead.created_at|date:"d.m.Y" }}
+                            </span>
                         </div>
                     </div>
                     {% endwith %}
@@ -54,1121 +113,195 @@
 <div id="leadModal" class="modal" style="display: none;">
     <div class="modal-content">
         <span class="close" onclick="closeModal()">&times;</span>
-            <div class="company-base-info">
-                <h2 id="modal_legal_name_base" style="margin-top: 0; margin-bottom: 20px; color: #fff;">
-                <!-- Здесь будет отображаться юр. название -->
-                </h2>
-            </div>
-            <br>
-            <h3>Редактировать лид</h3>
-            <div id="modalBody">
-                <!-- Раздел 1: Компания -->
-                <div class="form-section">
-                    <h3>Компания</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Форма организации *</label>
-                            <select id="modal_legal_form" required>
-                                <option value="">Выберите</option>
-                                <option value="ИП">ИП</option>
-                                <option value="ООО">ООО</option>
-                                <option value="АО">АО</option>
-                                <option value="ЗАО">ЗАО</option>
-                                <option value="другая">Другая</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="flex: 2;">
-                            <label>Название компании *</label>
-                            <input type="text" id="modal_company_name" required>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Юридическое название *</label>
-                            <input type="text" id="modal_legal_name" required>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Раздел 2: Реквизиты -->
-                <div class="form-section">
-                    <h3>Реквизиты</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>ИНН</label>
-                            <input type="text" id="modal_inn">
-                        </div>
-                        <div class="form-group">
-                            <label>ОГРН</label>
-                            <input type="text" id="modal_ogrn">
-                        </div>
-                    </div>
+        <div class="company-base-info">
+            <h2 id="modal_legal_name_base">Новый лид</h2>
+        </div>
+
+        <h3>Редактировать лид</h3>
+
+        <div id="modalBody">
+            <!-- Раздел 1: Компания -->
+            <div class="form-section">
+                <h3>Компания</h3>
+                <div class="form-row">
                     <div class="form-group">
-                        <label>Генеральный директор</label>
-                            <input type="text" id="modal_director_fio">
+                        <label>Форма организации *</label>
+                        <select id="modal_legal_form" required>
+                            <option value="">Выберите</option>
+                            <option value="ИП">ИП</option>
+                            <option value="ООО">ООО</option>
+                            <option value="АО">АО</option>
+                            <option value="ЗАО">ЗАО</option>
+                            <option value="другая">Другая</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 2;">
+                        <label>Название компании *</label>
+                        <input type="text" id="modal_company_name" required>
                     </div>
                 </div>
-                <!-- Раздел 7: Заявка на финансирование -->
-                <div class="form-section">
-                    <h3>Заявка</h3>
-
-                    <!-- Цель кредита -->
-                    <div class="form-row">
-                        <div class="form-group" style="flex: 2;">
-                            <label>Цель финансирования</label>
-                            <select id="modal_credit_purpose">
-                                <option value="">Не выбрано</option>
-                                <option value="кредит">Кредит</option>
-                                <option value="лизинг">Лизинг</option>
-                                <option value="овердрафт">Овердрафт</option>
-                                <option value="инвестиции">Инвестиции</option>
-                                <option value="другое">Другое</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Сумма (₽)</label>
-                            <input type="number" id="modal_amount" placeholder="0">
-                        </div>
-                    </div>
-
-                    <!-- Комментарий клиента -->
+                <div class="form-row">
                     <div class="form-group">
-                        <label>Комментарий клиента</label>
-                        <textarea id="modal_client_comment" rows="2" placeholder="Из заявки"></textarea>
-                    </div>
-                </div>
-
-                <!-- Раздел 3: Контакты -->
-                <div class="form-section">
-                    <h3>Контакты</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Контактное лицо</label>
-                            <input type="text" id="modal_contact_person">
-                        </div>
-                        <div class="form-group">
-                            <label>Телефон</label>
-                            <input type="tel" id="modal_contact_phone">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" id="modal_contact_email">
-                        </div>
-                        <div class="form-group">
-                            <label>Доп. телефон</label>
-                            <input type="tel" id="modal_phone">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Раздел 4: Адрес -->
-                <div class="form-section">
-                    <h3>Адрес</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Город</label>
-                            <input type="text" id="modal_city">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Адрес</label>
-                            <textarea id="modal_address" rows="2"></textarea>
-                    </div>
-                </div>
-
-                <!-- Раздел 5: Партнёр -->
-                <div class="form-section">
-                    <h3>Партнёр</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>ФИО партнёра</label>
-                            <input type="text" id="modal_partner_name">
-                        </div>
-                        <div class="form-group">
-                            <label>Должность</label>
-                            <input type="text" id="modal_partner_position">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Телефон партнёра</label>
-                        <input type="tel" id="modal_partner_phone">
-                    </div>
-                </div>
-
-                <!-- Раздел 6: Дополнительно -->
-                <div class="form-section">
-                    <h3>Дополнительно</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Сайт</label>
-                            <input type="url" id="modal_website">
-                        </div>
-                        <div class="form-group">
-                            <label>Источник</label>
-                            <select id="modal_source">
-                                <option value="">Не указан</option>
-                                <option value="сайт">Сайт</option>
-                                <option value="рекомендация">Рекомендация</option>
-                                <option value="холодный звонок">Холодный звонок</option>
-                                <option value="мероприятие">Мероприятие</option>
-                                <option value="другое">Другое</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Приоритет</label>
-                            <select id="modal_priority">
-                                <option value="not_set">Не обозначен</option>
-                                <option value="low">Низкий</option>
-                                <option value="high">Высокий</option>
-                                <option value="critical">Критический</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Комментарий брокера</label>
-                        <textarea id="modal_comment" rows="3"></textarea>
+                        <label>Юридическое название *</label>
+                        <input type="text" id="modal_legal_name" required>
                     </div>
                 </div>
             </div>
+
+            <!-- Раздел 2: Реквизиты -->
+            <div class="form-section">
+                <h3>Реквизиты</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ИНН</label>
+                        <input type="text" id="modal_inn" maxlength="12" placeholder="10 или 12 цифр">
+                    </div>
+                    <div class="form-group">
+                        <label>ОГРН</label>
+                        <input type="text" id="modal_ogrn" maxlength="15">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Генеральный директор</label>
+                    <input type="text" id="modal_director_fio" placeholder="Фамилия Имя Отчество">
+                </div>
+            </div>
+
+            <!-- Раздел 3: Заявка на финансирование -->
+            <div class="form-section">
+                <h3>Заявка</h3>
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label>Цель финансирования</label>
+                        <select id="modal_credit_purpose">
+                            <option value="">Не выбрано</option>
+                            <option value="кредит">Кредит</option>
+                            <option value="лизинг">Лизинг</option>
+                            <option value="овердрафт">Овердрафт</option>
+                            <option value="инвестиции">Инвестиции</option>
+                            <option value="другое">Другое</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Сумма (₽)</label>
+                        <input type="number" id="modal_amount" placeholder="0" min="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Комментарий клиента</label>
+                    <textarea id="modal_client_comment" rows="2" placeholder="Из заявки"></textarea>
+                </div>
+            </div>
+
+            <!-- Раздел 4: Контакты -->
+            <div class="form-section">
+                <h3>Контакты</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Контактное лицо</label>
+                        <input type="text" id="modal_contact_person" placeholder="ФИО">
+                    </div>
+                    <div class="form-group">
+                        <label>Телефон</label>
+                        <input type="tel" id="modal_contact_phone" placeholder="+7 (___) ___-__-__">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="modal_contact_email" placeholder="email@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Доп. телефон</label>
+                        <input type="tel" id="modal_phone" placeholder="+7 (___) ___-__-__">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Раздел 5: Адрес -->
+            <div class="form-section">
+                <h3>Адрес</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Город</label>
+                        <input type="text" id="modal_city" placeholder="Москва">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Полный адрес</label>
+                    <textarea id="modal_address" rows="2" placeholder="Улица, дом, офис"></textarea>
+                </div>
+            </div>
+
+            <!-- Раздел 6: Партнёр -->
+            <div class="form-section">
+                <h3>Партнёр</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ФИО партнёра</label>
+                        <input type="text" id="modal_partner_name" placeholder="Фамилия Имя Отчество">
+                    </div>
+                    <div class="form-group">
+                        <label>Должность</label>
+                        <input type="text" id="modal_partner_position" placeholder="Менеджер">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Телефон партнёра</label>
+                    <input type="tel" id="modal_partner_phone" placeholder="+7 (___) ___-__-__">
+                </div>
+            </div>
+
+            <!-- Раздел 7: Дополнительно -->
+            <div class="form-section">
+                <h3>Дополнительно</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Сайт</label>
+                        <input type="url" id="modal_website" placeholder="https://example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Источник</label>
+                        <select id="modal_source">
+                            <option value="">Не указан</option>
+                            <option value="сайт">Сайт</option>
+                            <option value="рекомендация">Рекомендация</option>
+                            <option value="холодный звонок">Холодный звонок</option>
+                            <option value="мероприятие">Мероприятие</option>
+                            <option value="другое">Другое</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Приоритет</label>
+                        <select id="modal_priority">
+                            <option value="not_set">Не обозначен</option>
+                            <option value="low">Низкий</option>
+                            <option value="high">Высокий</option>
+                            <option value="critical">Критический</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Комментарий брокера</label>
+                    <textarea id="modal_comment" rows="3" placeholder="Внутренние заметки"></textarea>
+                </div>
+            </div>
+        </div>
+
         <div class="form-buttons">
-            <button class="btn-save" onclick="saveLead()">Сохранить</button>
-            <button class="api-checko-btn" title="Запрос по инн" onclick="makeRequestChecko()">Запрос по инн</button>
-            <button class="delete-btn" title="Удалить" onclick="deleteCurrentLead()">Удалить</button>
+            <button class="btn-save" onclick="saveLead()">
+                <i class="fas fa-save"></i> Сохранить
+            </button>
+            <button class="api-checko-btn" title="Запрос по ИНН" onclick="makeRequestChecko()">
+                <i class="fas fa-search"></i> Checko
+            </button>
+            <button class="delete-btn" title="Удалить лид" onclick="deleteCurrentLead()">
+                <i class="fas fa-trash"></i>
+            </button>
         </div>
     </div>
 </div>
 
-<style>
-.column-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-.column-count {
-    background: rgba(141, 72, 232, 0.2);
-    color: #eae8ff;;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 14px;
-}
-.lead-info {
-    flex-grow: 1;
-}
-.lead-info small {
-    display: block;
-    color: #aaa;
-    font-size: 12px;
-    margin-top: 4px;
-}
-.lead-meta {
-    font-size: 11px;
-    color: #777;
-    margin-top: 4px;
-}
-
-/* Стили модального окна */
-.modal {
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.7);
-    overflow: hidden;
-}
-
-.modal-content {
-    position: absolute;
-    right: 0;
-    top: 0;
-    height: 100%;
-    width: 40%;
-    max-width: 90%;
-    background-color: #2b2b2b;
-    padding: 30px;
-    color: white;
-    margin: 0;
-    border-radius: 3px;
-    box-shadow: -5px 0 25px rgba(0,0,0,0.3);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-/* Стили для карточек с приоритетами */
-.kanban-card {
-    background: #2b2b2b;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 10px;
-    cursor: move;
-    border-left: 4px solid transparent;
-    transition: all 0.2s;
-}
-
-/* Белый текст для всех карточек */
-.kanban-card strong,
-.kanban-card small,
-.kanban-card .lead-meta {
-    color: white !important;
-}
-
-/* Цвета для приоритетов */
-.kanban-card.priority-not_set {
-    background: linear-gradient(135deg,
-        rgba(195, 126, 247, 0.15) 0%,
-        rgba(195, 126, 247, 0.05) 100%
-    ) !important;
-    border-left-color: #61b4f0 !important;
-}
-
-.kanban-card.priority-low {
-    background: linear-gradient(135deg,
-        rgba(72, 187, 180, 0.15) 0%,
-        rgba(72, 187, 180, 0.05) 100%
-    ) !important;
-    border-left-color: #48bbb4 !important;
-}
-
-.kanban-card.priority-high {
-    background: linear-gradient(135deg,
-        rgba(255, 193, 7, 0.15) 0%,
-        rgba(255, 193, 7, 0.05) 100%
-    ) !important;
-    border-left-color: #ffc107 !important;
-}
-
-.kanban-card.priority-critical {
-    background: linear-gradient(135deg,
-        rgba(220, 53, 69, 0.15) 0%,
-        rgba(220, 53, 69, 0.05) 100%
-    ) !important;
-    border-left-color: #dc3545 !important;
-}
-
-/* Стили для индикатора приоритета */
-.priority-indicator {
-    margin-left: 8px;
-    font-size: 11px;
-    padding: 2px 6px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-}
-
-/* Цвета текста для индикаторов */
-.kanban-card.priority-low .priority-indicator {
-    background: rgba(72, 187, 180, 0.3);
-    color: #48bbb4 !important;
-}
-
-.kanban-card.priority-high .priority-indicator {
-    background: rgba(255, 193, 7, 0.3);
-    color: #ffc107 !important;
-}
-
-.kanban-card.priority-critical .priority-indicator {
-    background: rgba(220, 53, 69, 0.3);
-    color: #dc3545 !important;
-}
-
-/* Заголовок модального окна */
-.modal-content h2 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    flex-shrink: 0;
-}
-
-/* Контейнер для содержимого формы */
-#modalBody {
-    flex: 1;
-    overflow-y: auto;
-    padding-right: 10px;
-    margin-right: -10px;
-}
-
-/* Стили для скроллбара */
-#modalBody::-webkit-scrollbar {
-    width: 6px;
-}
-
-#modalBody::-webkit-scrollbar-track {
-    background: #3a3a3a;
-    border-radius: 3px;
-}
-
-#modalBody::-webkit-scrollbar-thumb {
-    background: #8d48e8;
-    border-radius: 3px;
-}
-
-.form-buttons {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-    align-items: stretch;
-}
-
-.btn-save,
-.api-checko-btn,
-.delete-btn {
-    height: 48px;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 14px;
-}
-
-.btn-save {
-    flex: 1;
-    background: #8d48e8;
-    color: white;
-}
-
-.api-checko-btn {
-    flex: 0 0 auto;
-    width: 300px;
-    background: #f57c00;
-    color: white;
-}
-.api-checko-btn:hover {
-    background: #c76300;
-}
-
-.delete-btn {
-    flex: 0 0 auto;
-    width: 150px;
-    background: #f50733;
-    color: white;
-}
-
-/* Закрывающая кнопка */
-.close {
-    color: #aaa;
-    float: right;
-    font-size: 40px;
-    cursor: pointer;
-    line-height: 1;
-    position: absolute;
-    right: 20px;
-    top: 15px;
-    z-index: 10;
-}
-
-/* Группы полей в строку */
-.form-row {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 15px;
-}
-
-.form-row .form-group {
-    flex: 1;
-    margin-bottom: 0;
-}
-
-/* Делаем некоторые поля шире */
-.form-group[style*="flex: 2"] {
-    flex: 2;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    color: #ddd;
-}
-.form-group input,
-.form-group textarea {
-    width: 100%;
-    padding: 10px;
-    background: #3a3a3a;
-    border: 1px solid #555;
-    border-radius: 5px;
-    color: white;
-}
-
-/* Стили для разделов формы */
-.form-section {
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #444;
-}
-
-#modal_inn {
-    border: 2px solid #f57c00 !important;
-    background: rgba(245, 124, 0, 0.05) !important;
-}
-
-#modal_inn:focus {
-    box-shadow: 0 0 0 3px rgba(245, 124, 0, 0.25) !important;
-}
-
-.form-section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-}
-
-.form-section h3 {
-    color: #8d48e8;
-    font-size: 18px;
-    margin-bottom: 15px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #555;
-}
-</style>
-
-<script>
-// Функция для получения CSRF токена
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
-function addCard(button, columnId) {
-    console.log(`Добавление лида в колонку ${columnId}`);
-
-    fetch(`add_lead/${columnId}/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => {
-        console.log('Response status:', response.status, response.statusText);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Success:', data);
-
-        const container = button.nextElementSibling;
-        const card = document.createElement('div');
-        card.className = 'kanban-card priority-not_set';
-        card.dataset.id = data.id;
-        card.dataset.priority = 'not_set';
-        card.draggable = true;
-        card.ondragstart = drag;
-
-        card.innerHTML = `
-            <div class="lead-info">
-                <strong>${data.company_name}</strong>
-                <div class="lead-meta">${data.created_at}</div>
-            </div>
-            <div class="card-actions">
-                <button class="edit-btn" title="Редактировать">✎</button>
-            </div>
-        `;
-
-        // Обработчик ТОЛЬКО для кнопки редактирования
-        card.querySelector('.edit-btn').onclick = function(event) {
-            event.stopPropagation();
-            editLead(data.id);
-        };
-
-        container.appendChild(card);
-
-        // Обновляем счетчик колонки
-        const columnCount = button.parentElement.querySelector('.column-count');
-        columnCount.textContent = parseInt(columnCount.textContent) + 1;
-
-        editLead(data.id);
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Ошибка при создании лида: ' + error.message);
-    });
-}
-
-function updateCardOnBoard(leadId, data) {
-    const card = document.querySelector(`.kanban-card[data-id='${leadId}']`);
-    if (card) {
-        // Обновляем название
-        card.querySelector('strong').textContent = data.company_name;
-
-        // Добавляем ИНН если есть
-        if (data.inn) {
-            let innEl = card.querySelector('.inn-info');
-            if (!innEl) {
-                innEl = document.createElement('small');
-                innEl.className = 'inn-info';
-                card.querySelector('.lead-info').appendChild(innEl);
-            }
-            innEl.textContent = `ИНН: ${data.inn}`;
-        } else {
-            // Удаляем ИНН если его нет
-            const innEl = card.querySelector('.inn-info');
-            if (innEl) {
-                innEl.remove();
-            }
-        }
-
-        // Обновляем приоритет
-        if (data.priority) {
-            card.dataset.priority = data.priority;
-            card.classList.remove('priority-not_set', 'priority-low', 'priority-high', 'priority-critical');
-            card.classList.add(`priority-${data.priority}`);
-
-            // Обновляем индикатор приоритета
-            const leadMeta = card.querySelector('.lead-meta');
-            let priorityIndicator = card.querySelector('.priority-indicator');
-
-            const priorityTitles = {
-                'low': 'Низкий',
-                'high': 'Высокий',
-                'critical': 'Критический',
-                'not_set': 'Не обозначен'
-            };
-
-            if (data.priority !== 'not_set') {
-                if (!priorityIndicator) {
-                    priorityIndicator = document.createElement('span');
-                    priorityIndicator.className = 'priority-indicator';
-                    leadMeta.appendChild(priorityIndicator);
-                }
-                priorityIndicator.textContent = priorityTitles[data.priority];
-                priorityIndicator.title = `Приоритет: ${priorityTitles[data.priority]}`;
-                priorityIndicator.style.display = 'inline';
-            } else if (priorityIndicator) {
-                // Удаляем индикатор если приоритет "Не обозначен"
-                priorityIndicator.remove();
-            }
-        }
-    }
-}
-
-function deleteCard(leadId) {
-    fetch(`delete_lead/${leadId}/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': getCookie('csrftoken'),
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => {
-        if (response.ok) {
-            const element = document.querySelector(`.kanban-card[data-id='${leadId}']`);
-            if (element) {
-                // Обновляем счетчик колонки
-                const column = element.closest('.kanban-column');
-                const columnCount = column.querySelector('.column-count');
-                columnCount.textContent = parseInt(columnCount.textContent) - 1;
-
-                // Удаляем элемент с анимацией
-                element.style.opacity = '0';
-                element.style.transform = 'translateX(20px)';
-                setTimeout(() => {
-                    element.remove();
-                }, 300);
-            }
-        } else {
-            response.json().then(data => {
-                console.error('Ошибка удаления:', data.error || 'Неизвестная ошибка');
-                showNotification('Ошибка при удалении', 'error');
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Ошибка сети', 'error');
-    });
-}
-
-// Функция для удаления лида из модального окна
-function deleteCurrentLead() {
-    if (!currentLeadId) return;
-
-    if (confirm('Вы уверены, что хотите удалить этот лид?')) {
-        deleteCard(currentLeadId);
-        closeModal();
-    }
-}
-
-function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'error' ? '#ff4c4c' : '#8d48e8'};
-        color: white;
-        padding: 12px 20px;
-        border-radius: 6px;
-        z-index: 10000;
-        animation: slideIn 0.3s ease;
-    `;
-
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notification.remove(), 300);
-    }, 500);
-}
-
-document.head.insertAdjacentHTML('beforeend', `
-<style>
-@keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-@keyframes slideOut {
-    from { transform: translateX(0); opacity: 1; }
-    to { transform: translateX(100%); opacity: 0; }
-}
-</style>
-`);
-
-// Функция для редактирования лида
-function editLead(leadId) {
-    currentLeadId = leadId;
-
-    fetch(`get_lead/${leadId}/`)
-    .then(response => response.json())
-    .then(data => {
-        // Заполняем ВСЕ поля
-        updateLegalNameHeader(data.legal_name);
-
-        const fields = [
-            'company_name', 'legal_form', 'legal_name',
-            'inn', 'ogrn', 'director_fio',
-            'contact_person', 'contact_phone', 'contact_email', 'phone', 'email',
-            'address', 'city',
-            'partner_name', 'partner_position', 'partner_phone',
-            'website', 'source', 'priority', 'comment'
-        ];
-
-        fields.forEach(field => {
-            const element = document.getElementById(`modal_${field}`);
-            if (element) {
-                if (element.type === 'select-one') {
-                    element.value = data[field] || '';
-                } else {
-                    element.value = data[field] || '';
-                }
-            }
-        });
-
-        // Показываем модальное окно
-        document.getElementById('leadModal').style.display = 'block';
-    });
-}
-
-// Drag & drop функции
-let dragged;
-
-function drag(event) {
-    dragged = event.currentTarget;
-    event.dataTransfer.setData("text/plain", "");
-    dragged.classList.add('dragging');
-}
-
-function allowDrop(event) {
-    event.preventDefault();
-}
-
-function drop(event, columnId) {
-    event.preventDefault();
-
-    if (!dragged) return;
-
-    const container = event.currentTarget.querySelector('.kanban-cards');
-    container.appendChild(dragged);
-
-    fetch(`move_lead/${dragged.dataset.id}/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({
-            column_id: columnId
-        }),
-        credentials: 'same-origin'
-    })
-    .then(response => response.json())
-    .then(data => console.log('Moved:', data))
-    .catch(error => console.error('Error:', error));
-}
-
-document.addEventListener("dragend", function() {
-    if (dragged) {
-        dragged.classList.remove('dragging');
-        dragged = null;
-    }
-});
-
-// Модальное окно
-function openLeadModal(leadId) {
-    console.log('Открытие модального окна для лида:', leadId);
-    alert('Модальное окно для лида ' + leadId + '\n\nДобавь в views.py функцию get_lead для загрузки данных');
-}
-
-function closeModal() {
-    document.getElementById('leadModal').style.display = 'none';
-}
-
-// Функция для обновления юр. названия вверху
-function updateLegalNameHeader(legalName) {
-    const headerElement = document.getElementById('modal_legal_name_base');
-    if (legalName) {
-        headerElement.textContent = legalName;
-        headerElement.style.display = 'block';
-    } else {
-        headerElement.textContent = 'Новый лид';
-        headerElement.style.display = 'block';
-    }
-}
-
-function applyPriorityColors() {
-    const cards = document.querySelectorAll('.kanban-card');
-
-    cards.forEach(card => {
-        const priority = card.dataset.priority || 'not_set';
-
-        // Убираем старые классы
-        card.classList.remove('priority-not_set', 'priority-low', 'priority-high', 'priority-critical');
-
-        // Добавляем правильный класс
-        card.classList.add(`priority-${priority}`);
-    });
-}
-
-document.addEventListener('DOMContentLoaded', applyPriorityColors);
-
-// Функция сохранения лида
-function saveLead() {
-    if (!currentLeadId) return;
-
-    // Собираем ВСЕ данные
-    const data = {};
-    const fields = [
-        'company_name', 'legal_form', 'legal_name',
-        'inn', 'ogrn', 'director_fio',
-        'contact_person', 'contact_phone', 'contact_email', 'phone', 'email',
-        'address', 'city',
-        'partner_name', 'partner_position', 'partner_phone',
-        'website', 'source', 'priority', 'comment'
-    ];
-
-    fields.forEach(field => {
-        const element = document.getElementById(`modal_${field}`);
-        if (element) {
-            data[field] = element.value.trim();
-        }
-    });
-
-    // Проверка ОБЯЗАТЕЛЬНЫХ полей
-    const requiredFields = [
-        { name: 'company_name', label: 'Название компании' },
-        { name: 'legal_form', label: 'Форма организации' },
-        { name: 'legal_name', label: 'Юридическое название' }
-    ];
-
-    const missingFields = [];
-
-    requiredFields.forEach(field => {
-        if (!data[field.name] || !data[field.name].trim()) {
-            missingFields.push(field.label);
-        }
-    });
-
-    if (missingFields.length > 0) {
-        alert('Заполните обязательные поля:\n• ' + missingFields.join('\n• '));
-        return;
-    }
-
-    // Отправляем на сервер
-    fetch(`update_lead/${currentLeadId}/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.error) {
-            alert('Ошибка: ' + result.error);
-        } else {
-            // Обновляем карточку на доске
-            updateCardOnBoard(currentLeadId, data);
-
-            // Обновляем заголовок
-            updateLegalNameHeader(data.legal_name);
-
-            // Показываем уведомление
-            showNotification('Сохранено!', 'success');
-
-            applyPriorityColors();
-        }
-    });
-}
-
-// Для отладки
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('CRM страница загружена');
-});
-
-function makeRequestChecko() {
-    // Получаем ИНН из формы
-    const inn = document.getElementById('modal_inn').value.trim();
-
-    if (!inn) {
-        alert('Введите ИНН для запроса');
-        document.getElementById('modal_inn').focus();
-        return;
-    }
-
-    // Проверка формата ИНН
-    if (!/^\d{10}$|^\d{12}$/.test(inn)) {
-        alert('ИНН должен содержать 10 или 12 цифр');
-        return;
-    }
-
-    // Показываем загрузку
-    const button = document.querySelector('.api-checko-btn');
-    const originalText = button.textContent;
-    button.textContent = 'Загрузка...';
-    button.disabled = true;
-
-    console.log('Запрос данных для ИНН:', inn);
-
-    // Отправляем запрос к вашему API
-    fetch('/companies/api/get_company/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({ inn: inn })
-    })
-    .then(response => {
-        console.log('Статус ответа:', response.status);
-        if (!response.ok) {
-            throw new Error(`HTTP ошибка: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Получены данные:', data);
-
-        button.textContent = originalText;
-        button.disabled = false;
-
-        if (data.success) {
-            // Заполняем поля формы данными из API
-            fillFormWithCompanyData(data.data);
-            showNotification('Данные компании загружены из Checko', 'success');
-        } else {
-            showNotification('Ошибка: ' + (data.error || 'Не удалось получить данные'), 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Ошибка запроса:', error);
-        button.textContent = originalText;
-        button.disabled = false;
-        showNotification('Ошибка сети: ' + error.message, 'error');
-    });
-}
-
-function fillFormWithCompanyData(companyData) {
-    console.log('Полученные данные компании (верхний уровень):', companyData);
-    console.log('Raw data:', companyData.raw_data);
-
-    // Извлекаем данные из raw_data.data если они там
-    let data = companyData;
-    if (companyData.raw_data && companyData.raw_data.data) {
-        console.log('Используем данные из raw_data.data');
-        data = companyData.raw_data.data;
-    }
-
-    // Маппинг полей с данными из Checko API
-    const fieldMapping = {
-        // Компания
-        'modal_company_name': ['НаимСокр', 'НаимПолн', 'company_name'],
-        'modal_legal_name': ['НаимПолн', 'НаимСокр', 'legal_name'],
-        'modal_legal_form': ['ОКОПФ.Наим', 'legal_form'],
-
-        // Реквизиты
-        'modal_inn': ['ИНН', 'inn'],
-        'modal_ogrn': ['ОГРН', 'ogrn'],
-        'modal_kpp': ['КПП', 'kpp'],
-
-        // Руководство
-        'modal_director_fio': getDirectorName(data),
-
-        // Адрес
-        'modal_address': getAddress(data),
-        'modal_city': getCity(data),
-
-        // Контакты
-        'modal_phone': getPhone(data),
-        'modal_email': getEmail(data),
-        'modal_website': ['Контакты.ВебСайт', 'website']
-    };
-
-    console.log('Маппинг полей:', fieldMapping);
-
-    // Заполняем каждое поле
-    for (const [fieldId, fieldValue] of Object.entries(fieldMapping)) {
-        const fieldElement = document.getElementById(fieldId);
-        if (!fieldElement) {
-            console.log(`Поле ${fieldId} не найдено на странице`);
-            continue;
-        }
-
-        // Если значение - функция, вызываем её
-        let value = typeof fieldValue === 'function' ? fieldValue() : fieldValue;
-
-        // Если значение - массив, ищем первый существующий ключ
-        if (Array.isArray(value)) {
-            value = findValueByKeys(data, value);
-        }
-
-        console.log(`Поле ${fieldId}: значение = ${value}`);
-
-        // Заполняем поле, если нашли значение
-        if (value !== null && value !== undefined && value !== '') {
-            if (fieldElement.type === 'select-one') {
-                fieldElement.value = value;
-            } else {
-                fieldElement.value = value;
-            }
-        }
-
-        const companyName = document.getElementById('modal_company_name').value;
-        document.getElementById('modal_legal_form').value = detectLegalForm(companyName);
-    }
-
-    // Обновляем заголовок с юр. названием
-    updateLegalNameHeader(data['НаимПолн'] || data['НаимСокр'] || data.legal_name || data.company_name);
-}
-
-function detectLegalForm(companyName) {
-    if (!companyName) return 'другая';
-
-    const name = companyName.trim().toUpperCase();
-
-    if (name.includes('ООО') || name.includes('ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ')) {
-        return 'ООО';
-    }
-    if (name.includes('АО') || name.includes('АКЦИОНЕРНОЕ ОБЩЕСТВО')) {
-        return 'АО';
-    }
-    if (name.includes('ЗАО') || name.includes('ЗАКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО')) {
-        return 'ЗАО';
-    }
-    if (name.includes('ИП') || name.includes('ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ')) {
-        return 'ИП';
-    }
-
-    return 'другая';
-}
-
-// Вспомогательные функции для извлечения данных
-function findValueByKeys(data, keys) {
-    for (const key of keys) {
-        const value = getNestedValue(data, key);
-        if (value !== null && value !== undefined && value !== '') {
-            return value;
-        }
-    }
-    return null;
-}
-
-function getNestedValue(obj, path) {
-    return path.split('.').reduce((current, key) => {
-        return current && current[key] !== undefined ? current[key] : null;
-    }, obj);
-}
-
-function getDirectorName(data) {
-    // Проверяем массив Руковод
-    if (data.Руковод && Array.isArray(data.Руковод) && data.Руковод.length > 0) {
-        const director = data.Руковод[0];
-        if (director.ФИО) {
-            return director.ФИО;
-        }
-    }
-    return null;
-}
-
-function getAddress(data) {
-    // Проверяем ЮрАдрес
-    if (data.ЮрАдрес && data.ЮрАдрес.АдресРФ) {
-        return data.ЮрАдрес.АдресРФ;
-    }
-    if (data.ЮрАдрес && data.ЮрАдрес.НасПункт) {
-        return data.ЮрАдрес.НасПункт;
-    }
-    return null;
-}
-
-function getCity(data) {
-    // Проверяем Регион
-    if (data.Регион && data.Регион.Наим) {
-        return data.Регион.Наим;
-    }
-    if (data.ЮрАдрес && data.ЮрАдрес.НасПункт) {
-        // Извлекаем город из адреса
-        const address = data.ЮрАдрес.НасПункт;
-        const cityMatch = address.match(/г\.\s*([^,]+)/);
-        if (cityMatch) {
-            return cityMatch[1].trim();
-        }
-        return address;
-    }
-    return null;
-}
-
-function getPhone(data) {
-    // Проверяем Контакты.Тел
-    if (data.Контакты && data.Контакты.Тел && Array.isArray(data.Контакты.Тел) && data.Контакты.Тел.length > 0) {
-        return data.Контакты.Тел[0];
-    }
-    return null;
-}
-
-function getEmail(data) {
-    // Проверяем Контакты.Емэйл
-    if (data.Контакты && data.Контакты.Емэйл && Array.isArray(data.Контакты.Емэйл) && data.Контакты.Емэйл.length > 0) {
-        return data.Контакты.Емэйл[0];
-    }
-    return null;
-}
-
-
-
-</script>
+<script src="{% static 'crm/js/kanban.js' %}"></script>
 {% endblock %}
