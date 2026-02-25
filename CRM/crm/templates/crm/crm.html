@@ -802,7 +802,6 @@ function drop(event, columnId) {
     const container = event.currentTarget.querySelector('.kanban-cards');
     container.appendChild(dragged);
 
-    // Отправляем данные на сервер
     fetch(`move_lead/${dragged.dataset.id}/`, {
         method: 'POST',
         headers: {

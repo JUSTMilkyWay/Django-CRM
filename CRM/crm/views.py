@@ -181,7 +181,6 @@ def move_lead(request, lead_id):
 @login_required
 @csrf_exempt
 def update_lead(request, lead_id):
-    """Обновление всех полей лида (только для владельца)"""
     if request.method == "POST":
         try:
             lead = get_object_or_404(Lead, id=lead_id, user=request.user)
@@ -212,7 +211,6 @@ def update_lead(request, lead_id):
 
 @login_required
 def get_lead(request, lead_id):
-    """Получение данных лида (только для владельца)"""
     try:
         lead = get_object_or_404(Lead, id=lead_id, user=request.user)
         return JsonResponse({
