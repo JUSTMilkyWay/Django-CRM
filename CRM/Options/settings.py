@@ -23,8 +23,9 @@ INSTALLED_APPS = [
     'crm',
     'companies',
     'registration',
-    'widget_tweaks',
+    'tools',
 
+    'widget_tweaks',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -56,6 +57,7 @@ TEMPLATES = [
             BASE_DIR / 'templates/main',
             BASE_DIR / 'templates/crm',
             BASE_DIR / 'templates/companies',
+            BASE_DIR / 'templates/tools',
         ],
         'APP_DIRS': True,
         'OPTIONS': {

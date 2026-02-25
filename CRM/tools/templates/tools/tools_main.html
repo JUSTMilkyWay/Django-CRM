@@ -1,0 +1,51 @@
+{% extends "main/layout.html" %}
+
+{% block title %}Инструменты{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-4">
+    <h2 class="mb-4">Инструменты</h2>
+
+    <div class="row g-4">
+
+        <!-- TXT → Excel -->
+        <div class="col-md-4">
+            <div class="card shadow h-100 border-0">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-file-earmark-arrow-down"></i>
+                        TXT 51 в Excel
+                    </h5>
+                    <p class="card-text text-muted">
+                        Конвертация банковских TXT-файлов в Excel.
+                    </p>
+                    <a href="{% url 'txt51_to_excel' %}" class="btn btn-primary">
+                        Открыть
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Заготовка под будущие инструменты -->
+        <div class="col-md-4">
+            <div class="card shadow h-100 border-0 opacity-50">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-upload"></i>
+                        Excel → CRM
+                    </h5>
+                    <p class="card-text text-muted">
+                        Массовый импорт клиентов (в разработке).
+                    </p>
+                    <button class="btn btn-secondary" disabled>
+                        Скоро
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

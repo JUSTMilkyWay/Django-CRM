@@ -9,6 +9,8 @@ urlpatterns = [
     path('crm/', include('crm.urls')),
     path('companies/', include('companies.urls')),
 
+    path('tools/', include('tools.urls')),
+
     path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('accounts/login/', auth_views.LoginView.as_view(), name='login'),
     path('accounts/', include('registration.urls')),

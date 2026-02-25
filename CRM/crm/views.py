@@ -13,10 +13,15 @@ def crm_settings(request):
     """Страница настроек CRM"""
     columns = KanbanColumn.objects.filter(user=request.user).prefetch_related('leads').all()
 
+    # Пастельная палитра для профессиональной работы
     color_palette = [
-        '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#607D8B',
-        '#E91E63', '#00BCD4', '#FFC107', '#795548', '#03A9F4',
-        '#8BC34A', '#FF5722', '#009688', '#3F51B5', '#FFEB3B'
+        '#94A3B8', '#64748B', '#475569', '#334155',  # Серо-синие
+        '#6B7280', '#9CA3AF', '#D1D5DB',             # Серые
+        '#7C3AED', '#8B5CF6', '#A78BFA',             # Фиолетовые
+        '#3B82F6', '#60A5FA', '#93C5FD',             # Синие
+        '#10B981', '#34D399', '#6EE7B7',             # Зеленые
+        '#F59E0B', '#FBBF24', '#FCD34D',             # Желтые
+        '#EF4444', '#F87171', '#FCA5A5',             # Красные
     ]
 
     return render(request, 'crm/settings.html', {
@@ -65,7 +70,7 @@ def update_columns(request):
                 KanbanColumn.objects.create(
                     user=user,
                     title=column_data.get('title', 'Новая колонка'),
-                    color=column_data.get('color', '#4CAF50'),
+                    color=column_data.get('color', '#94A3B8'),
                     order=max_order + 1
                 )
 
@@ -86,12 +91,15 @@ def reset_columns(request):
             user = request.user
             KanbanColumn.objects.filter(user=user).delete()
 
+            # Профессиональные пастельные цвета для воронки продаж
             default_columns = [
-                {"title": "Входящие", "color": "#4CAF50", "order": 0},
-                {"title": "В работе", "color": "#2196F3", "order": 1},
-                {"title": "Обработан", "color": "#FF9800", "order": 2},
-                {"title": "Подписание", "color": "#9C27B0", "order": 3},
-                {"title": "Закрыта", "color": "#607D8B", "order": 4},
+                {"title": "Новые лиды", "color": "#60A5FA", "order": 0},      # Светло-синий - новые возможности
+                {"title": "Контакт установлен", "color": "#93C5FD", "order": 1}, # Голубой - первый контакт
+                {"title": "Квалификация", "color": "#A78BFA", "order": 2},    # Светло-фиолетовый - анализ
+                {"title": "Предложение", "color": "#FBBF24", "order": 3},     # Желтый - в процессе
+                {"title": "Переговоры", "color": "#FCD34D", "order": 4},      # Светло-желтый - обсуждение
+                {"title": "Закрыто успешно", "color": "#6EE7B7", "order": 5}, # Зеленый - победа
+                {"title": "Отказ", "color": "#FCA5A5", "order": 6},           # Светло-красный - не получилось
             ]
 
             for col_data in default_columns:
@@ -115,12 +123,15 @@ def crm(request):
     columns = KanbanColumn.objects.filter(user=request.user).prefetch_related('leads').all()
 
     if not columns.exists():
+        # Профессиональные пастельные цвета для воронки продаж
         default_columns = [
-            {"title": "Входящие", "color": "#4CAF50", "order": 0},
-            {"title": "В работе", "color": "#2196F3", "order": 1},
-            {"title": "Обработан", "color": "#FF9800", "order": 2},
-            {"title": "Подписание", "color": "#9C27B0", "order": 3},
-            {"title": "Закрыта", "color": "#607D8B", "order": 4},
+            {"title": "Входящие", "color": "#60A5FA", "order": 0},      # Светло-синий
+            {"title": "В работе", "color": "#93C5FD", "order": 1}, # Голубой
+            {"title": "Квалификация", "color": "#A78BFA", "order": 2},    # Светло-фиолетовый
+            {"title": "Предложение", "color": "#FBBF24", "order": 3},     # Желтый
+            {"title": "Переговоры", "color": "#FCD34D", "order": 4},      # Светло-желтый
+            {"title": "Закрыто успешно", "color": "#6EE7B7", "order": 5}, # Зеленый
+            {"title": "Отказ", "color": "#FCA5A5", "order": 6},           # Светло-красный
         ]
         for col_data in default_columns:
             KanbanColumn.objects.create(
@@ -143,11 +154,13 @@ def add_lead(request, column_id):
             user=request.user,
             column=column,
             company_name="Новый клиент",
+            priority="medium",  # Добавляем средний приоритет по умолчанию
             order=column.leads.count()
         )
         return JsonResponse({
             "id": lead.id,
             "company_name": lead.company_name,
+            "priority": lead.priority,
             "created_at": lead.created_at.strftime("%d.%m.%Y")
         })
 
@@ -233,7 +246,7 @@ def get_lead(request, lead_id):
             'partner_phone': lead.partner_phone or '',
             'website': lead.website or '',
             'source': lead.source or '',
-            'priority': lead.priority or '',
+            'priority': lead.priority or 'medium',
             'comment': lead.comment or '',
             'created_at': lead.created_at.strftime("%d.%m.%Y")
         })
