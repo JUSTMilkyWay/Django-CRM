@@ -4,145 +4,101 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.db import models
 import json
+from .services import create_default_columns
 
 from .models import KanbanColumn, Lead
 
 
 @login_required
 def crm_settings(request):
-    """Страница настроек CRM"""
-    columns = KanbanColumn.objects.filter(user=request.user).prefetch_related('leads').all()
-
-    # Пастельная палитра для профессиональной работы
-    color_palette = [
-        '#94A3B8', '#64748B', '#475569', '#334155',  # Серо-синие
-        '#6B7280', '#9CA3AF', '#D1D5DB',             # Серые
-        '#7C3AED', '#8B5CF6', '#A78BFA',             # Фиолетовые
-        '#3B82F6', '#60A5FA', '#93C5FD',             # Синие
-        '#10B981', '#34D399', '#6EE7B7',             # Зеленые
-        '#F59E0B', '#FBBF24', '#FCD34D',             # Желтые
-        '#EF4444', '#F87171', '#FCA5A5',             # Красные
-    ]
+    columns = KanbanColumn.objects.filter(
+        user=request.user
+    ).prefetch_related('leads').order_by('order')
 
     return render(request, 'crm/settings.html', {
-        'columns': columns,
-        'color_palette': color_palette
+        'columns': columns
     })
 
 
 @login_required
-@csrf_exempt
 def update_columns(request):
-    """Обновление колонок"""
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            user = request.user
+    if request.method != "POST":
+        return JsonResponse({"error": "Метод не разрешен"}, status=405)
 
-            # 1. Обновляем существующие колонки
-            for column_data in data.get('updated', []):
-                try:
-                    column = KanbanColumn.objects.get(id=column_data['id'], user=user)
-                    if 'title' in column_data:
-                        column.title = column_data['title']
-                    if 'color' in column_data:
-                        column.color = column_data['color']
-                    column.save()
-                except KanbanColumn.DoesNotExist:
-                    continue
+    data = json.loads(request.body)
+    user = request.user
 
-            # 2. Удаляем колонки
-            for column_id in data.get('deleted', []):
-                try:
-                    column = KanbanColumn.objects.get(id=column_id, user=user)
-                    first_column = KanbanColumn.objects.filter(user=user).first()
-                    if first_column and first_column.id != column_id:
-                        Lead.objects.filter(column=column, user=user).update(column=first_column)
-                    column.delete()
-                except KanbanColumn.DoesNotExist:
-                    continue
+    # Обновление
+    for col in data.get("updated", []):
+        KanbanColumn.objects.filter(
+            id=col["id"],
+            user=user
+        ).update(title=col.get("title", ""))
 
-            # 3. Создаем новые колонки
-            for column_data in data.get('new', []):
-                max_order = KanbanColumn.objects.filter(user=user).aggregate(
-                    models.Max('order')
-                )['order__max'] or 0
-                KanbanColumn.objects.create(
-                    user=user,
-                    title=column_data.get('title', 'Новая колонка'),
-                    color=column_data.get('color', '#94A3B8'),
-                    order=max_order + 1
-                )
+    # Удаление
+    for col_id in data.get("deleted", []):
+        column = KanbanColumn.objects.filter(
+            id=col_id,
+            user=user
+        ).first()
 
-            return JsonResponse({"success": True})
+        if column:
+            target_column = (
+                user.kanban_columns
+                .exclude(id=col_id)
+                .order_by("order")
+                .first()
+            )
 
-        except Exception as e:
-            return JsonResponse({"success": False, "error": str(e)}, status=400)
+            if target_column:
+                Lead.objects.filter(
+                    column=column,
+                    user=user
+                ).update(column=target_column)
 
-    return JsonResponse({"success": False, "error": "Метод не разрешен"}, status=405)
+            column.delete()
+
+    # Создание
+    max_order = (
+        user.kanban_columns
+        .aggregate(models.Max("order"))["order__max"] or 0
+    )
+
+    for i, col in enumerate(data.get("new", []), start=1):
+        user.kanban_columns.create(
+            title=col.get("title", "Новая колонка"),
+            order=max_order + i
+        )
+
+    return JsonResponse({"success": True})
 
 
 @login_required
-@csrf_exempt
 def reset_columns(request):
-    """Сброс колонок к стандартным"""
-    if request.method == "POST":
-        try:
-            user = request.user
-            KanbanColumn.objects.filter(user=user).delete()
+    if request.method != "POST":
+        return JsonResponse({"error": "Метод не разрешен"}, status=405)
 
-            # Профессиональные пастельные цвета для воронки продаж
-            default_columns = [
-                {"title": "Новые лиды", "color": "#60A5FA", "order": 0},      # Светло-синий - новые возможности
-                {"title": "Контакт установлен", "color": "#93C5FD", "order": 1}, # Голубой - первый контакт
-                {"title": "Квалификация", "color": "#A78BFA", "order": 2},    # Светло-фиолетовый - анализ
-                {"title": "Предложение", "color": "#FBBF24", "order": 3},     # Желтый - в процессе
-                {"title": "Переговоры", "color": "#FCD34D", "order": 4},      # Светло-желтый - обсуждение
-                {"title": "Закрыто успешно", "color": "#6EE7B7", "order": 5}, # Зеленый - победа
-                {"title": "Отказ", "color": "#FCA5A5", "order": 6},           # Светло-красный - не получилось
-            ]
+    user = request.user
+    user.kanban_columns.all().delete()
+    create_default_columns(user)
 
-            for col_data in default_columns:
-                KanbanColumn.objects.create(
-                    user=user,
-                    title=col_data["title"],
-                    color=col_data["color"],
-                    order=col_data["order"]
-                )
-
-            return JsonResponse({"success": True})
-
-        except Exception as e:
-            return JsonResponse({"success": False, "error": str(e)}, status=400)
-
-    return JsonResponse({"success": False, "error": "Метод не разрешен"}, status=405)
+    return JsonResponse({"success": True})
 
 
 @login_required
 def crm(request):
-    columns = KanbanColumn.objects.filter(user=request.user).prefetch_related('leads').all()
+    user = request.user
 
-    if not columns.exists():
-        # Профессиональные пастельные цвета для воронки продаж
-        default_columns = [
-            {"title": "Входящие", "color": "#60A5FA", "order": 0},      # Светло-синий
-            {"title": "В работе", "color": "#93C5FD", "order": 1}, # Голубой
-            {"title": "Квалификация", "color": "#A78BFA", "order": 2},    # Светло-фиолетовый
-            {"title": "Предложение", "color": "#FBBF24", "order": 3},     # Желтый
-            {"title": "Переговоры", "color": "#FCD34D", "order": 4},      # Светло-желтый
-            {"title": "Закрыто успешно", "color": "#6EE7B7", "order": 5}, # Зеленый
-            {"title": "Отказ", "color": "#FCA5A5", "order": 6},           # Светло-красный
-        ]
-        for col_data in default_columns:
-            KanbanColumn.objects.create(
-                user=request.user,
-                title=col_data["title"],
-                color=col_data["color"],
-                order=col_data["order"]
-            )
-        columns = KanbanColumn.objects.filter(user=request.user).prefetch_related('leads').all()
+    if not user.kanban_columns.exists():
+        create_default_columns(user)
 
-    return render(request, 'crm/crm.html', {'columns': columns})
+    columns = (
+        user.kanban_columns
+        .prefetch_related("leads")
+        .order_by("order")
+    )
+
+    return render(request, "crm/crm.html", {"columns": columns})
 
 
 @login_required

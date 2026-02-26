@@ -3,9 +3,12 @@ from django.contrib.auth.models import User
 
 
 class KanbanColumn(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='kanban_columns', null=True, blank=True)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='kanban_columns'
+    )
     title = models.CharField(max_length=50)
-    color = models.CharField(max_length=20, default="#2b2b2b")
     order = models.PositiveIntegerField(default=0)
 
     class Meta:

@@ -1,0 +1,112 @@
+.crm-settings {
+    max-width: 900px;
+    margin: 40px auto;
+}
+
+.crm-header {
+    display: flex;
+    gap: 30px;
+    border-bottom: 1px solid #e5e5e5;
+    padding-bottom: 15px;
+    margin-bottom: 30px;
+}
+
+.crm-tab {
+    text-decoration: none;
+    color: #777;
+    font-size: 15px;
+}
+
+.crm-tab.active {
+    color: #111;
+    font-weight: 600;
+}
+
+.settings-block {
+    margin-bottom: 40px;
+}
+
+.settings-block h2 {
+    font-size: 18px;
+    margin-bottom: 20px;
+}
+
+.columns-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.column-item {
+    border: 1px solid #e5e5e5;
+    padding: 15px;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.column-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.column-title {
+    border: none;
+    font-size: 16px;
+    width: 70%;
+    outline: none;
+}
+
+.column-title:focus {
+    border-bottom: 1px solid #ccc;
+}
+
+.column-options {
+    display: flex;
+    gap: 25px;
+    margin-top: 10px;
+    font-size: 14px;
+    color: #555;
+}
+
+.column-meta {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #999;
+}
+
+.btn-add {
+    margin-top: 20px;
+    background: none;
+    border: 1px dashed #ccc;
+    padding: 10px;
+    width: 100%;
+    cursor: pointer;
+}
+
+.actions-block {
+    display: flex;
+    justify-content: space-between;
+}
+
+.btn-primary {
+    background: #111;
+    color: white;
+    padding: 10px 25px;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-secondary {
+    background: none;
+    border: 1px solid #ccc;
+    padding: 10px 25px;
+    cursor: pointer;
+}
+
+.btn-delete {
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+}
