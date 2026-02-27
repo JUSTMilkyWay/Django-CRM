@@ -1,0 +1,19 @@
+{% load static %}
+
+<link rel="stylesheet" href="{% static 'crm/css/crm_header.css' %}">
+
+<div class="crm-header">
+    <a href="{% url 'crm_page' %}"
+       class="crm-btn {% if active_tab == 'leads' %}active{% endif %}">
+        Лиды
+    </a>
+
+    <span class="crm-btn disabled">
+        <s>ToDo</s>
+    </span>
+
+    <a href="{% url 'crm_settings' %}"
+       class="crm-btn {% if active_tab == 'settings' %}active{% endif %}">
+        Настройки
+    </a>
+</div>

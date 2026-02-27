@@ -1,9 +1,12 @@
 {% extends 'main/layout.html' %}
 {% load widget_tweaks %}
+{% load static %}
 
 {% block title %}Вход в аккаунт{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="{% static 'registration/css/auth.css' %}">
+
 <div class="container mt-5" style="max-width: 450px;">
     <div class="card">
         <div class="card-header bg-primary text-white">

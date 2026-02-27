@@ -1,4 +1,48 @@
 // ======== CSRF ========
+function renderLeadCard(data) {
+    const card = document.createElement('div');
+    card.className = `kanban-card priority-${data.priority}`;
+    card.dataset.id = data.id;
+    card.dataset.priority = data.priority;
+    card.draggable = true;
+    card.ondragstart = drag;
+
+    card.innerHTML = `
+    <div class="card-header">
+        <div class="lead-info">
+            <div class="lead-name">${data.company_name}</div>
+            ${data.inn ? `<small class="lead-inn">ИНН: ${data.inn}</small>` : ''}
+        </div>
+        <div class="card-actions">
+            <button class="card-action-btn edit" title="Редактировать"></button>
+            <button class="card-action-btn delete" title="Удалить"></button>
+        </div>
+    </div>
+    ${data.total_amount ? `
+    <div class="card-amount">
+        <span class="amount-value">${data.total_amount} ₽</span>
+    </div>` : ''}
+    <div class="card-fields">
+        ${data.contact_person ? `<div class="card-field"><span>${data.contact_person}</span></div>` : ''}
+        ${data.contact_phone ? `<div class="card-field"><span>${data.contact_phone}</span></div>` : ''}
+        ${data.contact_email ? `<div class="card-field"><span>${data.contact_email}</span></div>` : ''}
+        ${data.city ? `<div class="card-field"><span>${data.city}</span></div>` : ''}
+        ${data.source ? `<div class="card-field"><span>${data.source}</span></div>` : ''}
+        ${data.partner_name ? `<div class="card-field"><span>${data.partner_name}</span></div>` : ''}
+    </div>
+    <div class="card-footer">
+        <span class="priority-badge ${data.priority}">${data.priority}</span>
+        <span class="card-date">${data.created_at}</span>
+    </div>
+    `;
+
+    // Кнопки
+    card.querySelector('.edit').onclick = e => { e.stopPropagation(); editLead(data.id); };
+    card.querySelector('.delete').onclick = e => { e.stopPropagation(); confirmDelete(data.id); };
+
+    return card;
+}
+
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -15,9 +59,94 @@ function getCookie(name) {
 }
 
 // ======== Добавление карточки ========
-function addCard(button, columnId) {
-    console.log(`Добавление лида в колонку ${columnId}`);
+function renderLeadCard(data) {
+    const priority = data.priority || '';
+    const priorityClass = priority || 'not-set';
 
+    const card = document.createElement('div');
+    card.className = `kanban-card priority-${priorityClass}`;
+    card.dataset.id = data.id;
+    card.dataset.priority = priority;
+    card.draggable = true;
+    card.ondragstart = (e) => drag(e);
+
+    // Открытие модалки по клику на карточку (кроме кнопок)
+    card.onclick = (e) => {
+        if (!e.target.closest('.card-action-btn')) {
+            editLead(data.id);
+        }
+    };
+
+    const amountFormatted = data.total_amount
+        ? Number(data.total_amount).toLocaleString('ru-RU', {maximumFractionDigits: 0})
+        : null;
+
+    card.innerHTML = `
+        <div class="card-header">
+            <div class="lead-info">
+                <div class="lead-name">${escapeHtml(data.company_name)}</div>
+                ${data.inn ? `<small class="lead-inn">ИНН: ${escapeHtml(data.inn)}</small>` : ''}
+            </div>
+            <div class="card-actions">
+                <button class="card-action-btn edit" title="Редактировать">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                </button>
+                <button class="card-action-btn delete" title="Удалить">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        ${amountFormatted ? `
+        <div class="card-amount">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+            <span class="amount-value">${amountFormatted} ₽</span>
+        </div>` : ''}
+        <div class="card-fields">
+            ${renderField(data.contact_person, 'user')}
+            ${renderField(data.contact_phone, 'phone')}
+            ${renderField(data.contact_email, 'mail')}
+            ${renderField(data.city, 'map-pin')}
+            ${renderField(data.source, 'target')}
+            ${renderField(data.partner_name, 'user-plus')}
+        </div>
+        <div class="card-footer">
+            <span class="priority-badge ${priorityClass}">
+                ${data.priority_display || 'Не назначен'}
+            </span>
+            <span class="card-date">${data.created_at}</span>
+        </div>
+    `;
+
+    // Кнопки
+    card.querySelector('.edit').onclick = (e) => { e.stopPropagation(); editLead(data.id); };
+    card.querySelector('.delete').onclick = (e) => { e.stopPropagation(); confirmDelete(data.id); };
+
+    return card;
+}
+
+// Вспомогательные функции
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function renderField(value, iconName) {
+    if (!value) return '';
+    // Или свои SVG-иконки по имени
+    return `<div class="card-field"><span>${escapeHtml(value)}</span></div>`;
+}
+
+function addCard(button, columnId) {
     fetch(`add_lead/${columnId}/`, {
         method: 'POST',
         headers: {
@@ -27,51 +156,21 @@ function addCard(button, columnId) {
         },
         credentials: 'same-origin'
     })
-    .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        return response.json();
-    })
+    .then(r => r.json())
     .then(data => {
-        console.log('Создан лид:', data);
+        if(data.error){ alert(data.error); return; }
 
         const container = button.nextElementSibling;
-        const card = document.createElement('div');
-
-        const priority = data.priority || 'not_set';
-        card.className = `kanban-card priority-${priority}`;
-        card.dataset.priority = priority;
-
-        card.dataset.id = data.id;
-        card.draggable = true;
-        card.ondragstart = drag;
-
-        card.innerHTML = `
-            <div class="lead-info">
-                <strong>${data.company_name}</strong>
-                <div class="lead-meta">${data.created_at}</div>
-            </div>
-            <div class="card-actions">
-                <button class="edit-btn" title="Редактировать"></button>
-            </div>
-        `;
-
-        card.querySelector('.edit-btn').onclick = e => {
-            e.stopPropagation();
-            editLead(data.id);
-        };
-
+        const card = renderLeadCard(data);
         container.appendChild(card);
 
         // Обновляем счетчик
         const columnCount = button.parentElement.querySelector('.column-count');
         columnCount.textContent = parseInt(columnCount.textContent) + 1;
 
-        editLead(data.id);
+        editLead(data.id); // сразу открыть редактирование
     })
-    .catch(error => {
-        console.error('Ошибка при создании лида:', error);
-        alert('Ошибка при создании лида: ' + error.message);
-    });
+    .catch(err => { console.error(err); alert('Ошибка при создании лида'); });
 }
 
 // ======== Обновление карточки ========
@@ -79,28 +178,68 @@ function updateCardOnBoard(leadId, data) {
     const card = document.querySelector(`.kanban-card[data-id='${leadId}']`);
     if (!card) return;
 
-    const leadInfo = card.querySelector('.lead-info');
-    if (leadInfo) {
-        leadInfo.querySelector('strong').textContent = data.company_name || 'Новая компания';
-    }
+    // Название компании
+    const leadName = card.querySelector('.lead-name');
+    if (leadName) leadName.textContent = data.company_name || 'Новый лид';
 
     // ИНН
-    let innEl = card.querySelector('.inn-info');
+    let innEl = card.querySelector('.lead-inn');
     if (data.inn) {
         if (!innEl) {
             innEl = document.createElement('small');
-            innEl.className = 'inn-info';
+            innEl.className = 'lead-inn';
             card.querySelector('.lead-info').appendChild(innEl);
         }
         innEl.textContent = `ИНН: ${data.inn}`;
     } else if (innEl) innEl.remove();
 
+    // Контактные поля
+    const fieldsMap = {
+        contact_person: '.contact-person',
+        contact_phone: '.contact-phone',
+        contact_email: '.contact-email',
+        city: '.city',
+        source: '.source',
+        partner_name: '.partner-name'
+    };
+
+    for (const key in fieldsMap) {
+        const selector = fieldsMap[key];
+        let el = card.querySelector(selector);
+        if (data[key]) {
+            if (!el) {
+                el = document.createElement('div');
+                el.className = `card-field ${selector.slice(1)}`;
+                el.innerHTML = `<span>${data[key]}</span>`;
+                card.querySelector('.card-fields').appendChild(el);
+            } else {
+                el.querySelector('span').textContent = data[key];
+            }
+        } else if (el) {
+            el.remove();
+        }
+    }
+
+    // Сумма сделки
+    let amountEl = card.querySelector('.card-amount .amount-value');
+    if (data.total_amount) {
+        if (!amountEl) {
+            const amountDiv = document.createElement('div');
+            amountDiv.className = 'card-amount';
+            amountDiv.innerHTML = `<span class="amount-value">${data.total_amount} ₽</span>`;
+            card.appendChild(amountDiv);
+        } else {
+            amountEl.textContent = `${data.total_amount} ₽`;
+        }
+    } else if (amountEl) {
+        amountEl.closest('.card-amount').remove();
+    }
+
     // Приоритет
     if (data.priority) {
         card.dataset.priority = data.priority;
-        card.classList.remove('priority-not_set', 'priority-low', 'priority-high', 'priority-critical');
+        card.classList.remove('priority-not_set','priority-low','priority-high','priority-critical');
         card.classList.add(`priority-${data.priority}`);
-        applyPriorityColors();
     }
 
     // Обновляем кнопки
@@ -244,22 +383,74 @@ function applyPriorityColors(){
 document.addEventListener('DOMContentLoaded',applyPriorityColors);
 
 // ======== Save Lead ========
-function saveLead(){
-    if(!currentLeadId) return;
-    const data={};
-    const fields=['company_name','legal_form','legal_name','inn','ogrn','director_fio','contact_person','contact_phone','contact_email','phone','email','address','city','partner_name','partner_position','partner_phone','website','source','priority','comment'];
-    fields.forEach(f=>{const el=document.getElementById(`modal_${f}`);if(el)data[f]=el.value.trim();});
+function saveLead() {
+    if (!currentLeadId) return;
 
-    const missing=fields.filter(f=>['company_name','legal_form','legal_name'].includes(f)&&!data[f]);
-    if(missing.length){alert('Заполните обязательные поля:\n• '+missing.join('\n• '));return;}
+    const data = {};
+    // Поля и их "человеческие имена"
+    const fields = {
+        company_name: 'Название компании',
+        legal_form: 'Форма организации',
+        legal_name: 'Юридическое название',
+        inn: 'ИНН',
+        ogrn: 'ОГРН',
+        director_fio: 'ФИО директора',
+        contact_person: 'Контактное лицо',
+        contact_phone: 'Телефон контакта',
+        contact_email: 'Email контакта',
+        phone: 'Телефон',
+        email: 'Email',
+        address: 'Адрес',
+        city: 'Город',
+        partner_name: 'Партнёр',
+        partner_position: 'Должность партнёра',
+        partner_phone: 'Телефон партнёра',
+        website: 'Сайт',
+        source: 'Источник',
+        priority: 'Приоритет',
+        comment: 'Комментарий'
+    };
 
-    fetch(`update_lead/${currentLeadId}/`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
-        body:JSON.stringify(data)
-    }).then(r=>r.json()).then(result=>{
-        if(result.error) alert('Ошибка: '+result.error);
-        else{updateCardOnBoard(currentLeadId,data);updateLegalNameHeader(data.legal_name);showNotification('Сохранено!','success');applyPriorityColors();}
+    // Собираем данные из модального окна
+    for (const key in fields) {
+        const el = document.getElementById(`modal_${key}`);
+        if (el) data[key] = el.value.trim();
+    }
+
+    // Проверяем обязательные поля
+    const required = ['company_name', 'legal_form', 'legal_name'];
+    const missing = required.filter(f => !data[f]);
+    if (missing.length) {
+        alert(
+            'Заполните обязательные поля:\n• ' +
+            missing.map(f => fields[f]).join('\n• ')
+        );
+        return;
+    }
+
+    // Отправка на сервер
+    fetch(`update_lead/${currentLeadId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.error) {
+            alert('Ошибка: ' + result.error);
+        } else {
+            updateCardOnBoard(currentLeadId, data); // обновление карточки
+            updateLegalNameHeader(data.legal_name); // если нужно обновить header
+            showNotification('Сохранено!', 'success');
+            applyPriorityColors();
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Произошла ошибка при сохранении');
     });
 }
 

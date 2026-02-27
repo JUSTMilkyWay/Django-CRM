@@ -125,6 +125,7 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     BASE_DIR / "main" / "static",
     BASE_DIR / "crm" / "static",
+    BASE_DIR / "registration" / "static",
 ]
 
 

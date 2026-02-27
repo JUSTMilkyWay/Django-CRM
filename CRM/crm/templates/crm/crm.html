@@ -3,19 +3,14 @@
 {% load static %}
 
 {% block title %}CRM{% endblock %}
-
 {% block content %}
 
 <!-- Подключаем CRM CSS -->
 <link rel="stylesheet" href="{% static 'crm/css/kanban.css' %}">
 
-<div class="crm crm-page">
-    <div class="crm-header">
-        <a href="{% url 'crm_page' %}"><button class="crm-btn active">Лиды</button></a>
-        <button class="crm-btn"><span style="text-decoration: line-through;">ToDo</span></button>
-        <a href="{% url 'crm_settings' %}"><button class="crm-btn">Настройки</button></a>
-    </div>
+{% include 'crm/crm_header.html' with active_tab='leads' %}
 
+<div class="crm crm-page">
     <div class="kanban">
         {% for column in columns %}
         <div class="kanban-column" ondragover="allowDrop(event)" ondrop="drop(event, {{ column.id }})">
@@ -28,135 +23,7 @@
             </button>
             <div class="kanban-cards" id="column-{{ column.id }}">
                 {% for lead in column.leads.all %}
-                    {% with priority=lead.priority|default:'' %}
-                    <div class="kanban-card priority-{{ priority }}"
-                         data-id="{{ lead.id }}"
-                         draggable="true"
-                         ondragstart="drag(event)"
-                         data-priority="{{ priority }}">
-
-                        <div class="card-header">
-                            <div class="lead-info">
-                                <div class="lead-name">{{ lead.company_name }}</div>
-                                {% if lead.inn %}<small class="lead-inn">ИНН: {{ lead.inn }}</small>{% endif %}
-                            </div>
-                            <div class="card-actions">
-                                <button class="card-action-btn edit"
-                                        title="Редактировать"
-                                        onclick="event.stopPropagation(); editLead({{ lead.id }})">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                    </svg>
-                                </button>
-                                <button class="card-action-btn delete"
-                                        title="Удалить"
-                                        onclick="event.stopPropagation(); confirmDelete({{ lead.id }})">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <polyline points="3 6 5 6 21 6"></polyline>
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Сумма сделки (если есть) -->
-                        {% if lead.total_amount %}
-                        <div class="card-amount">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="1" x2="12" y2="23"></line>
-                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                            </svg>
-                            <span class="amount-value">{{ lead.total_amount|floatformat:0 }} ₽</span>
-                        </div>
-                        {% endif %}
-
-                        <!-- Динамические поля с настройками отображения -->
-                        <div class="card-fields">
-                            <!-- Контактное лицо -->
-                            {% if user.profile.show_contact_person|default:True and lead.contact_person %}
-                            <div class="card-field">
-                                <svg class="field-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                </svg>
-                                <span class="field-value">{{ lead.contact_person }}</span>
-                            </div>
-                            {% endif %}
-
-                            <!-- Телефон -->
-                            {% if user.profile.show_phone|default:True and lead.contact_phone %}
-                            <div class="card-field">
-                                <svg class="field-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                                </svg>
-                                <span class="field-value">{{ lead.contact_phone }}</span>
-                            </div>
-                            {% endif %}
-
-                            <!-- Email -->
-                            {% if user.profile.show_email|default:True and lead.contact_email %}
-                            <div class="card-field">
-                                <svg class="field-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                                    <polyline points="22,6 12,13 2,6"></polyline>
-                                </svg>
-                                <span class="field-value">{{ lead.contact_email }}</span>
-                            </div>
-                            {% endif %}
-
-                            <!-- Город -->
-                            {% if user.profile.show_city|default:True and lead.city %}
-                            <div class="card-field">
-                                <svg class="field-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                    <circle cx="12" cy="10" r="3"></circle>
-                                </svg>
-                                <span class="field-value">{{ lead.city }}</span>
-                            </div>
-                            {% endif %}
-
-                            <!-- Источник -->
-                            {% if user.profile.show_source|default:False and lead.source %}
-                            <div class="card-field">
-                                <svg class="field-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <circle cx="12" cy="12" r="6"></circle>
-                                    <circle cx="12" cy="12" r="2"></circle>
-                                </svg>
-                                <span class="field-value">{{ lead.source }}</span>
-                            </div>
-                            {% endif %}
-
-                            <!-- Партнёр -->
-                            {% if user.profile.show_partner|default:False and lead.partner_name %}
-                            <div class="card-field">
-                                <svg class="field-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="8.5" cy="7" r="4"></circle>
-                                    <path d="M20 8v6M23 11h-6"></path>
-                                </svg>
-                                <span class="field-value">{{ lead.partner_name }}</span>
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="card-footer">
-                            <span class="priority-badge {{ priority }}">
-                                {% if priority == 'critical' %}
-                                    Критичный
-                                {% elif priority == 'high' %}
-                                    Высокий
-                                {% elif priority == 'low' %}
-                                    Низкий
-                                {% else %}
-                                    Не назначен
-                                {% endif %}
-                            </span>
-                            <span class="card-date">{{ lead.created_at|date:"d.m.Y" }}</span>
-                        </div>
-                    </div>
-                    {% endwith %}
+                    {% include "crm/_lead_card.html" with lead=lead %}
                 {% endfor %}
             </div>
         </div>
@@ -353,7 +220,8 @@
                     <polyline points="3 6 5 6 21 6"></polyline>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
-            </button>>
+            </button>
+            </button>
         </div>
     </div>
 </div>

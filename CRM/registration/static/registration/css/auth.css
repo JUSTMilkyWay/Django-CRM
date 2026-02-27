@@ -1,0 +1,105 @@
+/* === PROFILE / AUTH PAGES === */
+.profile-wrapper {
+    max-width: 600px;
+    margin: 60px auto;
+    padding: 0 20px;
+}
+
+.profile-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.profile-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.profile-header h4 {
+    margin: 0;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.profile-body {
+    padding: 25px;
+}
+
+.profile-row {
+    margin-bottom: 18px;
+    display: flex;
+    flex-direction: column;
+}
+
+.profile-row .label {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    margin-bottom: 4px;
+}
+
+.profile-row .value {
+    font-size: 15px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.profile-actions {
+    margin-top: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Кнопки */
+.btn-outline,
+.btn-danger-outline,
+.btn-secondary-custom {
+    padding: 10px 14px;
+    border-radius: 8px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.btn-outline {
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    background: transparent;
+}
+
+.btn-outline:hover {
+    background: var(--bg-tertiary);
+}
+
+.btn-danger-outline {
+    border: 1px solid var(--btn-danger);
+    color: var(--btn-danger);
+    background: transparent;
+}
+
+.btn-danger-outline:hover {
+    background: var(--btn-danger);
+    color: white;
+}
+
+.btn-secondary-custom {
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    background: transparent;
+}
+
+.btn-secondary-custom:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.back-link {
+    text-align: center;
+    margin-top: 20px;
+}

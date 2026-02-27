@@ -1,20 +1,16 @@
 {% extends 'main/layout.html' %}
 {% load static %}
-{% block title %}Настройки CRM{% endblock %}
 
+{% block title %}Настройки CRM{% endblock %}
 {% block content %}
 
 <link rel="stylesheet" href="{% static 'crm/css/settings.css' %}">
+
 <script defer src="{% static 'crm/js/settings.js' %}"></script>
 
+{% include 'crm/crm_header.html' with active_tab='settings' %}
+
 <div class="crm-settings">
-
-    <div class="crm-header">
-        <a href="{% url 'crm_page' %}" class="crm-tab">Лиды</a>
-        <span class="crm-tab">ToDo</span>
-        <span class="crm-tab active">Настройки</span>
-    </div>
-
     <div class="settings-block">
         <h2>Колонки канбан-доски</h2>
 

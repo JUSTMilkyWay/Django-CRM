@@ -1,3 +1,66 @@
+/* === ПЕРЕМЕННЫЕ ТЕМЫ === */
+:root {
+    /* Темная тема (по умолчанию) */
+    --bg-primary: #0f1419;
+    --bg-secondary: #1a1d2b;
+    --bg-tertiary: #2d3748;
+    --bg-modal: #1e2029;
+    --bg-input: #2a2f3d;
+    --bg-card: #1e1e1e;
+
+    --border-color: #2a2f3d;
+    --border-hover: #3a3f4d;
+    --border-dashed: #3a3a3a;
+
+    --text-primary: #e2e8f0;
+    --text-secondary: #a0aec0;
+    --text-tertiary: #718096;
+    --text-muted: #4a5568;
+
+    --accent-primary: #4a5568;
+    --accent-hover: #5a6778;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+    /* Приоритеты */
+    --priority-not-set: #4a5568;
+    --priority-low: #48bbb4;
+    --priority-high: #fbbf24;
+    --priority-critical: #ef4444;
+
+    /* Кнопки */
+    --btn-primary: #4a5568;
+    --btn-warning: #f57c00;
+    --btn-danger: #ef4444;
+    --btn-edit: #3b82f6;
+}
+
+/* Белая тема */
+body.light-theme {
+    --bg-primary: #f5f7fa;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #e2e8f0;
+    --bg-modal: #ffffff;
+    --bg-input: #f1f5f9;
+    --bg-card: #ffffff;
+
+    --border-color: #cbd5e0;
+    --border-hover: #a0aec0;
+    --border-dashed: #cbd5e0;
+
+    --text-primary: #1a202c;
+    --text-secondary: #4a5568;
+    --text-tertiary: #718096;
+    --text-muted: #a0aec0;
+
+    --accent-primary: #4a5568;
+    --accent-hover: #2d3748;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 /* === ОБЩИЕ СТИЛИ === */
 * {
     margin: 0;
@@ -6,7 +69,8 @@
 }
 
 body {
-    background: #0f1419;
+    background: var(--bg-primary);
+    color: var(--text-primary);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     min-height: 100vh;
     display: flex;
@@ -22,12 +86,12 @@ aside {
     position: fixed;
     top: 0;
     left: 0;
-    background: #1a1d2b;
+    background: var(--bg-secondary);
     width: 280px;
     padding: 2rem;
     height: 100vh;
-    color: #fff;
-    border-right: 1px solid #2a2f3d;
+    color: var(--text-primary);
+    border-right: 1px solid var(--border-color);
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
     z-index: 1000;
     overflow-y: auto;

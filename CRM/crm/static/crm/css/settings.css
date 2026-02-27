@@ -1,25 +1,26 @@
 .crm-settings {
     max-width: 900px;
-    margin: 40px auto;
-}
-
-.crm-header {
-    display: flex;
-    gap: 30px;
-    border-bottom: 1px solid #e5e5e5;
-    padding-bottom: 15px;
-    margin-bottom: 30px;
+    margin: 0px auto;
+    color: var(--text-primary);
+    font-family: 'Segoe UI', sans-serif;
 }
 
 .crm-tab {
     text-decoration: none;
-    color: #777;
+    color: #aaa;
     font-size: 15px;
+    transition: color 0.2s;
+}
+
+.crm-tab:hover {
+    color: #fff;
 }
 
 .crm-tab.active {
-    color: #111;
+    color: #fff;
     font-weight: 600;
+    border-bottom: 2px solid #8d48e8;
+    padding-bottom: 5px;
 }
 
 .settings-block {
@@ -29,6 +30,7 @@
 .settings-block h2 {
     font-size: 18px;
     margin-bottom: 20px;
+    color: #fff;
 }
 
 .columns-list {
@@ -38,10 +40,16 @@
 }
 
 .column-item {
-    border: 1px solid #e5e5e5;
+    border: 1px solid var(--border-color);
     padding: 15px;
     border-radius: 6px;
-    background: #fff;
+    var(--bg-card);
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.column-item:hover {
+    background: #2a2a40;
+    border-color: #888;
 }
 
 .column-main {
@@ -55,10 +63,12 @@
     font-size: 16px;
     width: 70%;
     outline: none;
+    background: transparent;
+    color: #e0e0e0;
 }
 
 .column-title:focus {
-    border-bottom: 1px solid #ccc;
+    border-bottom: 1px solid #8d48e8;
 }
 
 .column-options {
@@ -66,22 +76,33 @@
     gap: 25px;
     margin-top: 10px;
     font-size: 14px;
-    color: #555;
+    color: #bbb;
+}
+
+.column-options input[type="checkbox"] {
+    accent-color: #8d48e8;
 }
 
 .column-meta {
     margin-top: 8px;
     font-size: 13px;
-    color: #999;
+    color: #888;
 }
 
 .btn-add {
     margin-top: 20px;
     background: none;
-    border: 1px dashed #ccc;
+    border: 1px dashed #888;
     padding: 10px;
     width: 100%;
     cursor: pointer;
+    color: #bbb;
+    transition: all 0.2s;
+}
+
+.btn-add:hover {
+    border-color: #8d48e8;
+    color: #fff;
 }
 
 .actions-block {
@@ -90,18 +111,29 @@
 }
 
 .btn-primary {
-    background: #111;
+    background: #8d48e8;
     color: white;
     padding: 10px 25px;
     border: none;
     cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-primary:hover {
+    background: #a260f0;
 }
 
 .btn-secondary {
     background: none;
-    border: 1px solid #ccc;
+    border: 1px solid #555;
     padding: 10px 25px;
     cursor: pointer;
+    color: #ccc;
+}
+
+.btn-secondary:hover {
+    border-color: #8d48e8;
+    color: #fff;
 }
 
 .btn-delete {
@@ -109,4 +141,9 @@
     border: none;
     color: #888;
     cursor: pointer;
+    transition: color 0.2s;
+}
+
+.btn-delete:hover {
+    color: #ff4c4c;
 }

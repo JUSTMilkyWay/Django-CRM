@@ -1,11 +1,14 @@
 # views.py
 from django.shortcuts import render, get_object_or_404
+from django.template.loader import render_to_string
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.db import models
 import json
 from .services import create_default_columns
+
+from .models import Lead, KanbanColumn
 
 from .models import KanbanColumn, Lead
 
@@ -103,22 +106,16 @@ def crm(request):
 
 
 @login_required
-@csrf_exempt
 def add_lead(request, column_id):
-    if request.method == "POST":
+    if request.method == 'POST':
         column = get_object_or_404(KanbanColumn, id=column_id, user=request.user)
-        lead = Lead.objects.create(
-            user=request.user,
-            column=column,
-            company_name="Новый клиент",
-            priority="medium",  # Добавляем средний приоритет по умолчанию
-            order=column.leads.count()
-        )
+        lead = Lead.objects.create(user=request.user, column=column, company_name='')
         return JsonResponse({
-            "id": lead.id,
-            "company_name": lead.company_name,
-            "priority": lead.priority,
-            "created_at": lead.created_at.strftime("%d.%m.%Y")
+            'id': lead.id,
+            'company_name': lead.company_name,
+            'priority': lead.priority,                 # для CSS-класса
+            'priority_display': lead.get_priority_display(),  # для текста
+            'created_at': lead.created_at.strftime('%d.%m.%Y')
         })
 
 

@@ -1,66 +1,3 @@
-/* === ПЕРЕМЕННЫЕ ТЕМЫ === */
-:root {
-    /* Темная тема (по умолчанию) */
-    --bg-primary: #0f1419;
-    --bg-secondary: #1a1d2b;
-    --bg-tertiary: #2d3748;
-    --bg-modal: #1e2029;
-    --bg-input: #2a2f3d;
-    --bg-card: #1e1e1e;
-
-    --border-color: #2a2f3d;
-    --border-hover: #3a3f4d;
-    --border-dashed: #3a3a3a;
-
-    --text-primary: #e2e8f0;
-    --text-secondary: #a0aec0;
-    --text-tertiary: #718096;
-    --text-muted: #4a5568;
-
-    --accent-primary: #4a5568;
-    --accent-hover: #5a6778;
-
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
-
-    /* Приоритеты */
-    --priority-not-set: #4a5568;
-    --priority-low: #48bbb4;
-    --priority-high: #fbbf24;
-    --priority-critical: #ef4444;
-
-    /* Кнопки */
-    --btn-primary: #4a5568;
-    --btn-warning: #f57c00;
-    --btn-danger: #ef4444;
-    --btn-edit: #3b82f6;
-}
-
-/* Белая тема */
-body.light-theme {
-    --bg-primary: #f5f7fa;
-    --bg-secondary: #ffffff;
-    --bg-tertiary: #e2e8f0;
-    --bg-modal: #ffffff;
-    --bg-input: #f1f5f9;
-    --bg-card: #ffffff;
-
-    --border-color: #cbd5e0;
-    --border-hover: #a0aec0;
-    --border-dashed: #cbd5e0;
-
-    --text-primary: #1a202c;
-    --text-secondary: #4a5568;
-    --text-tertiary: #718096;
-    --text-muted: #a0aec0;
-
-    --accent-primary: #4a5568;
-    --accent-hover: #2d3748;
-
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
 html, body {
     height: 100%;
     margin: 0;
@@ -289,22 +226,16 @@ html, body {
 /* === СУММА СДЕЛКИ === */
 .card-amount {
     display: flex;
-    align-items: center;
+    justify-content: flex-end; /* выравнивание вправо */
+    align-items: center;       /* по вертикали */
     gap: 6px;
     padding: 8px 0;
     margin-bottom: 8px;
     border-bottom: 1px solid var(--border-color);
 }
 
-.card-amount svg {
-    color: var(--text-tertiary);
-    flex-shrink: 0;
-    width: 14px;
-    height: 14px;
-}
-
 .amount-value {
-    font-size: 15px;
+    font-size: 20px;
     font-weight: 600;
     color: var(--text-primary);
 }
