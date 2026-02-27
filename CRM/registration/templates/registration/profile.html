@@ -16,19 +16,19 @@
         <div class="profile-body">
 
             <div class="profile-row">
-                <span class="label">Имя пользователя</span>
+                <span class="form-text text-theme-muted">Имя пользователя</span>
                 <span class="value">{{ user.username }}</span>
             </div>
 
             {% if user.email %}
             <div class="profile-row">
-                <span class="label">Email</span>
+                <span class="form-text text-theme-muted">Email</span>
                 <span class="value">{{ user.email }}</span>
             </div>
             {% endif %}
 
             <div class="profile-row">
-                <span class="label">Дата регистрации</span>
+                <span class="form-text text-theme-muted">Дата регистрации</span>
                 <span class="value">
                     {{ user.date_joined|date:"d.m.Y H:i" }}
                 </span>

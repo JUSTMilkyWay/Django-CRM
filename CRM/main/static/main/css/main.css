@@ -34,6 +34,18 @@
     --btn-warning: #f57c00;
     --btn-danger: #ef4444;
     --btn-edit: #3b82f6;
+
+    --btn-save-bg: #4caf50;
+    --btn-save-hover: #43a047;
+
+    --btn-secondary-bg: #f5f5f5;
+    --btn-secondary-hover: #e0e0e0;
+
+    --btn-delete-bg: #f44336;
+    --btn-delete-hover: #d32f2f;
+
+    --btn-add-bg: #2196f3;
+    --btn-add-hover: #1976d2;
 }
 
 /* Белая тема */
@@ -193,10 +205,12 @@ aside ul li i {
 
 /* === ОСНОВНОЙ КОНТЕНТ === */
 main {
-    margin-left: 280px;
-    padding: 2rem;
-    width: calc(100% - 280px);
+    flex: 1;
+    margin-left: 280px; /* под ширину sidebar */
     min-height: 100vh;
+    overflow-x: hidden; /* убираем лишний горизонтальный скролл */
+    overflow-y: auto;   /* вертикальный скролл только если контент больше */
+    padding: 2rem;
 }
 
 /* === СТРАНИЦА ИНСТРУМЕНТОВ === */
@@ -323,48 +337,6 @@ main {
     background: #4a5568;
     border-color: #4a5568;
     color: #fff;
-}
-
-/* Kanban */
-.kanban {
-    display: flex;
-    gap: 20px;
-    overflow-x: auto;
-    padding-bottom: 20px;
-}
-
-.kanban::-webkit-scrollbar {
-    height: 8px;
-}
-
-.kanban::-webkit-scrollbar-thumb {
-    background: #4a5568;
-    border-radius: 4px;
-}
-
-/* Колонки Kanban - все одного цвета */
-.kanban-column {
-    flex: 1;
-    min-width: 320px;
-    background: #1e1e1e;
-    border: 1px solid #2a2a2a;
-    border-radius: 12px;
-    padding: 20px;
-    min-height: 500px;
-}
-
-.kanban-column h2 {
-    font-size: 16px;
-    color: #e2e8f0;
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-
-/* Описание колонки */
-.kanban-column .column-description {
-    font-size: 12px;
-    color: #718096;
-    margin-bottom: 16px;
 }
 
 .add-card-btn {

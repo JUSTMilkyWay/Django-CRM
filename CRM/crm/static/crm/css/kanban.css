@@ -3,14 +3,26 @@ html, body {
     margin: 0;
 }
 
-/* === KANBAN КОЛОНКИ === */
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1; /* занимает всё оставшееся место */
+    display: flex;
+    flex-direction: column;
+}
+
 .kanban {
     display: flex;
     gap: 0;
     overflow-x: auto;
+    overflow-y: hidden;
     padding-bottom: 20px;
 
-     min-height:  calc(100vh - 110px);
+    flex: 1; /* растягивается на доступное место в main */
+    min-height: 0; /* важно для flexbox */
 }
 
 .kanban::-webkit-scrollbar {
@@ -348,7 +360,7 @@ html, body {
     right: 0;
     top: 0;
     height: 100%;
-    width: 500px;
+    width: 800px;
     max-width: 100%;
     background: var(--bg-modal);
     padding: 30px;
@@ -542,12 +554,12 @@ html, body {
 
 /* Сохранить */
 .btn-save {
-    background: #27de23;
+    background: var(--btn-save-bg);
     color: white;
 }
 
 .btn-save:hover {
-    background: #29b827;
+    background: var(--btn-save-hover);
 }
 
 /* Запрос */

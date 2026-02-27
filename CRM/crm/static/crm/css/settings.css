@@ -1,25 +1,25 @@
 .crm-settings {
     max-width: 900px;
-    margin: 0px auto;
+    margin: 0 auto;
     color: var(--text-primary);
     font-family: 'Segoe UI', sans-serif;
 }
 
 .crm-tab {
     text-decoration: none;
-    color: #aaa;
+    color: var(--text-secondary);
     font-size: 15px;
     transition: color 0.2s;
 }
 
 .crm-tab:hover {
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .crm-tab.active {
-    color: #fff;
+    color: var(--text-primary);
     font-weight: 600;
-    border-bottom: 2px solid #8d48e8;
+    border-bottom: 2px solid var(--accent-primary);
     padding-bottom: 5px;
 }
 
@@ -30,7 +30,7 @@
 .settings-block h2 {
     font-size: 18px;
     margin-bottom: 20px;
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .columns-list {
@@ -43,13 +43,13 @@
     border: 1px solid var(--border-color);
     padding: 15px;
     border-radius: 6px;
-    var(--bg-card);
+    background: var(--bg-card);
     transition: background 0.2s, border-color 0.2s;
 }
 
 .column-item:hover {
-    background: #2a2a40;
-    border-color: #888;
+    background: var(--bg-secondary);
+    border-color: var(--accent-primary);
 }
 
 .column-main {
@@ -64,11 +64,18 @@
     width: 70%;
     outline: none;
     background: transparent;
-    color: #e0e0e0;
+    color: var(--text-primary);
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: background 0.2s, border 0.2s;
+    cursor: text; /* явно показать, что редактируемое */
 }
 
+/* Визуальное выделение при наведении и фокусе */
+.column-title:hover,
 .column-title:focus {
-    border-bottom: 1px solid #8d48e8;
+    background: var(--bg-input);
+    border: 1px solid var(--accent-primary);
 }
 
 .column-options {
@@ -76,33 +83,33 @@
     gap: 25px;
     margin-top: 10px;
     font-size: 14px;
-    color: #bbb;
+    color: var(--text-secondary);
 }
 
 .column-options input[type="checkbox"] {
-    accent-color: #8d48e8;
+    accent-color: var(--accent-primary);
 }
 
 .column-meta {
     margin-top: 8px;
     font-size: 13px;
-    color: #888;
+    color: var(--text-muted);
 }
 
 .btn-add {
     margin-top: 20px;
     background: none;
-    border: 1px dashed #888;
+    border: 1px dashed var(--border-color);
     padding: 10px;
     width: 100%;
     cursor: pointer;
-    color: #bbb;
+    color: var(--text-secondary);
     transition: all 0.2s;
 }
 
 .btn-add:hover {
-    border-color: #8d48e8;
-    color: #fff;
+    border-color: var(--accent-primary);
+    color: var(--text-primary);
 }
 
 .actions-block {
@@ -111,39 +118,48 @@
 }
 
 .btn-primary {
-    background: #8d48e8;
-    color: white;
+    background: var(--accent-primary);
+    color: var(--text-primary);
     padding: 10px 25px;
     border: none;
     cursor: pointer;
     transition: background 0.2s;
 }
 
+.btn-save {
+    background: var(--btn-save-bg);
+    color: white;
+}
+
+.btn-save:hover {
+    background: var(--btn-save-hover);
+}
+
 .btn-primary:hover {
-    background: #a260f0;
+    background: var(--accent-hover);
 }
 
 .btn-secondary {
     background: none;
-    border: 1px solid #555;
+    border: 1px solid var(--border-color);
     padding: 10px 25px;
     cursor: pointer;
-    color: #ccc;
+    color: var(--text-secondary);
 }
 
 .btn-secondary:hover {
-    border-color: #8d48e8;
-    color: #fff;
+    border-color: var(--accent-primary);
+    color: var(--text-primary);
 }
 
 .btn-delete {
     background: none;
     border: none;
-    color: #888;
+    color: var(--text-muted);
     cursor: pointer;
     transition: color 0.2s;
 }
 
 .btn-delete:hover {
-    color: #ff4c4c;
+    color: var(--priority-critical); /* красное для удаления */
 }
