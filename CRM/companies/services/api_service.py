@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 # Локальные настройки
 CHECKO_API_CONFIG = {
-    'api_key': 'n1eLMRORBrNgUbye',  # Ваш API ключ
+    'api_key': 'w7b92zRR2W16ks3H',  # Ваш API ключ
     'base_url': 'https://api.checko.ru/v2/company',
     'timeout': 30,
     'cache_duration_days': 30,

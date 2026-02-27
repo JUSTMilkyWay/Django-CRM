@@ -1,3 +1,4 @@
+#models.py
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -18,11 +19,15 @@ class KanbanColumn(models.Model):
         return self.title
 
 
+
 class Lead(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='leads', null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='leads')
     company_name = models.CharField(max_length=100, blank=True, null=True)
+    total_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='Сумма сделки')
+
     inn = models.CharField(max_length=12, blank=True, null=True)
     ogrn = models.CharField(max_length=13, blank=True, null=True)
+
     director_fio = models.CharField(max_length=200, blank=True, null=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
@@ -62,11 +67,7 @@ class Lead(models.Model):
         verbose_name='Приоритет'
     )
 
-    column = models.ForeignKey(
-        KanbanColumn,
-        on_delete=models.CASCADE,
-        related_name='leads'
-    )
+    column = models.ForeignKey(KanbanColumn, on_delete=models.CASCADE, related_name='leads')
     order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -74,5 +75,19 @@ class Lead(models.Model):
     class Meta:
         ordering = ['order']
 
+
     def __str__(self):
         return self.company_name or "Новый клиент"
+
+class LeadFile(models.Model):
+    lead = models.ForeignKey(
+        Lead,
+        on_delete=models.CASCADE,
+        related_name='files'
+    )
+    file = models.FileField(upload_to='lead_files/')
+    description = models.CharField(max_length=255, blank=True, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.file.name}"

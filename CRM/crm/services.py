@@ -9,7 +9,7 @@ def create_default_columns(user):
     ]
 
     for index, title in enumerate(default_columns):
-        user.kanbancolumn_set.create(
+        user.kanban_columns.create(
             title=title,
             order=index
         )

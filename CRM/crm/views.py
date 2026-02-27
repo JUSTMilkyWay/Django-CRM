@@ -1,3 +1,4 @@
+# views.py
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
@@ -161,12 +162,15 @@ def update_lead(request, lead_id):
                 'contact_person', 'contact_phone', 'contact_email', 'phone', 'email',
                 'address', 'city',
                 'partner_name', 'partner_position', 'partner_phone',
-                'website', 'source', 'priority', 'comment'
+                'website', 'source', 'priority', 'comment',
+                'total_amount', 'credit_purpose', 'client_comment'
             ]
 
             for field in fields_to_update:
                 if field in data:
                     value = data[field] if data[field] != "" else None
+                    if field == "total_amount" and value is not None:
+                        value = float(value)
                     setattr(lead, field, value)
 
             lead.save()
@@ -204,6 +208,10 @@ def get_lead(request, lead_id):
             'source': lead.source or '',
             'priority': lead.priority or 'medium',
             'comment': lead.comment or '',
+            # новые поля
+            'total_amount': float(lead.total_amount or 0),
+            'credit_purpose': getattr(lead, 'credit_purpose', ''),
+            'client_comment': getattr(lead, 'client_comment', ''),
             'created_at': lead.created_at.strftime("%d.%m.%Y")
         })
     except Lead.DoesNotExist:
