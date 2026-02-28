@@ -6,8 +6,6 @@
 
 <link rel="stylesheet" href="{% static 'crm/css/settings.css' %}">
 
-<script defer src="{% static 'crm/js/settings.js' %}"></script>
-
 {% include 'crm/crm_header.html' with active_tab='settings' %}
 
 <div class="crm-settings">
@@ -17,15 +15,14 @@
         <div class="columns-list" id="columnsList">
             {% for column in columns %}
             <div class="column-item" data-column-id="{{ column.id }}">
-
                 <div class="column-main">
                     <input type="text"
                            class="column-title"
                            value="{{ column.title }}"
                            data-original="{{ column.title }}"
                            maxlength="50">
-
                     <button class="btn-delete"
+                            type="button"
                             onclick="deleteColumn({{ column.id }})">
                         Удалить
                     </button>
@@ -33,16 +30,11 @@
 
                 <div class="column-options">
                     <label>
-                        <input type="checkbox"
-                               class="final-stage"
-                               {% if column.is_final %}checked{% endif %}>
+                        <input type="checkbox" class="final-stage">
                         Финальная стадия
                     </label>
-
                     <label>
-                        <input type="checkbox"
-                               class="exclude-stage"
-                               {% if column.exclude_from_stats %}checked{% endif %}>
+                        <input type="checkbox" class="exclude-stage">
                         Исключить из аналитики
                     </label>
                 </div>
@@ -50,24 +42,25 @@
                 <div class="column-meta">
                     Карточек: {{ column.leads.count }}
                 </div>
-
             </div>
             {% endfor %}
         </div>
 
-        <button class="btn-add" onclick="addNewColumn()">
+        <button class="btn-add" type="button" onclick="addNewColumn()">
             + Добавить колонку
         </button>
     </div>
 
     <div class="actions-block">
-        <button class="btn-secondary" onclick="resetToDefault()">
+        <button class="btn-secondary" type="button" onclick="resetToDefault()">
             Сбросить
         </button>
-
-        <button type="submit" class="btn btn-primary btn-save">Сохранить</button>
+        <button class="btn btn-primary btn-save" type="button" onclick="saveAllChanges()">
+            Сохранить
+        </button>
     </div>
-
 </div>
+
+<script src="{% static 'crm/js/settings.js' %}"></script>
 
 {% endblock %}

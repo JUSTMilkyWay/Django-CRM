@@ -28,50 +28,55 @@ def update_columns(request):
     if request.method != "POST":
         return JsonResponse({"error": "Метод не разрешен"}, status=405)
 
-    data = json.loads(request.body)
-    user = request.user
+    try:
+        data = json.loads(request.body)
+        user = request.user
 
-    # Обновление
-    for col in data.get("updated", []):
-        KanbanColumn.objects.filter(
-            id=col["id"],
-            user=user
-        ).update(title=col.get("title", ""))
-
-    # Удаление
-    for col_id in data.get("deleted", []):
-        column = KanbanColumn.objects.filter(
-            id=col_id,
-            user=user
-        ).first()
-
-        if column:
-            target_column = (
-                user.kanban_columns
-                .exclude(id=col_id)
-                .order_by("order")
-                .first()
+        # Обновление существующих
+        for col in data.get("updated", []):
+            KanbanColumn.objects.filter(
+                id=col["id"],
+                user=user
+            ).update(
+                title=col.get("title", ""),
+                order=col.get("order", 0)
             )
 
-            if target_column:
-                Lead.objects.filter(
-                    column=column,
-                    user=user
-                ).update(column=target_column)
+        # Удаление
+        for col_id in data.get("deleted", []):
+            column = KanbanColumn.objects.filter(
+                id=col_id,
+                user=user
+            ).first()
+            if column:
+                # Переносим лиды в первую доступную колонку
+                target_column = user.kanban_columns.exclude(id=col_id).order_by("order").first()
+                if target_column:
+                    Lead.objects.filter(column=column, user=user).update(column=target_column)
+                column.delete()
 
-            column.delete()
+        # Создание новых
+        max_order = user.kanban_columns.aggregate(models.Max("order"))["order__max"] or 0
+        for i, col in enumerate(data.get("new", [])):
+            user.kanban_columns.create(
+                title=col.get("title", "Новая колонка"),
+                order=col.get("order", max_order + i + 1)
+            )
 
-    # Создание
-    max_order = (
-        user.kanban_columns
-        .aggregate(models.Max("order"))["order__max"] or 0
-    )
+        return JsonResponse({"success": True})
 
-    for i, col in enumerate(data.get("new", []), start=1):
-        user.kanban_columns.create(
-            title=col.get("title", "Новая колонка"),
-            order=max_order + i
-        )
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+def reset_columns(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Метод не разрешен"}, status=405)
+
+    user = request.user
+    user.kanban_columns.all().delete()
+    create_default_columns(user)
 
     return JsonResponse({"success": True})
 
@@ -150,18 +155,29 @@ def delete_lead(request, lead_id):
 @login_required
 @csrf_exempt
 def move_lead(request, lead_id):
-    if request.method == "POST":
+    if request.method != "POST":
+        return JsonResponse({"error": "Метод не разрешен"}, status=405)
+
+    try:
         data = json.loads(request.body)
         lead = get_object_or_404(Lead, id=lead_id, user=request.user)
 
+        # Обновляем колонку
         new_column_id = data.get("column_id")
         if new_column_id:
             new_column = get_object_or_404(KanbanColumn, id=new_column_id, user=request.user)
             lead.column = new_column
+            lead.save()
 
-        lead.order = data.get("order", lead.order)
-        lead.save()
+        # ✅ Перенумеруем ВСЕ лиды в колонке по переданному порядку
+        lead_order = data.get("lead_order", [])
+        for i, item in enumerate(lead_order):
+            Lead.objects.filter(id=item['id'], user=request.user).update(order=i)
+
         return JsonResponse({"status": "moved"})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
 
 @login_required

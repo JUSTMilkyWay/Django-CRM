@@ -1,3 +1,4 @@
+//kanban,js
 // ======== НАСТРОЙКИ ПОЛЬЗОВАТЕЛЯ ========
 const USER_PERMS = JSON.parse(
     document.getElementById('user-permissions')?.textContent || '{}'
@@ -351,27 +352,7 @@ function confirmDelete(leadId) {
     }
 }
 
-// ======== УВЕДОМЛЕНИЯ ========
-function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px; right: 20px;
-        background: ${type === 'error' ? '#ff4c4c' : '#8d48e8'};
-        color: white;
-        padding: 12px 20px;
-        border-radius: 6px;
-        z-index: 10000;
-        animation: slideIn 0.3s ease;
-    `;
-    document.body.appendChild(notification);
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notification.remove(), 300);
-    }, 500);
-}
+
 
 document.head.insertAdjacentHTML('beforeend', `
 <style>
@@ -482,15 +463,27 @@ function drop(event, columnId) {
     event.preventDefault();
     if (!dragged) return;
 
-    // Получаем ID старой колонки
     const oldColumn = dragged.closest('.kanban-column[data-column-id]');
     const oldColumnId = oldColumn?.dataset.columnId;
 
-    // Перемещаем карточку визуально
     const container = event.currentTarget.querySelector('.kanban-cards');
-    container.appendChild(dragged);
 
-    // Отправляем на сервер ТОЛЬКО column_id (без order)
+    // ✅ Находим карточку, над которой отпустили (или ближайшую снизу)
+    const afterElement = getDragAfterElement(container, event.clientY);
+
+    // ✅ Вставляем в правильное место (не в конец!)
+    if (afterElement == null) {
+        container.appendChild(dragged);  // В конец, если ниже всех
+    } else {
+        container.insertBefore(dragged, afterElement);  // Перед найденной карточкой
+    }
+
+    // ✅ Получаем ВСЕ карточки в НОВОМ порядке
+    const cards = container.querySelectorAll('.kanban-card');
+    const leadOrder = Array.from(cards).map(card => ({
+        id: parseInt(card.dataset.id)
+    }));
+
     fetch(`move_lead/${dragged.dataset.id}/`, {
         method: 'POST',
         headers: {
@@ -499,15 +492,14 @@ function drop(event, columnId) {
             'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify({
-            column_id: columnId
-            // ✅ order НЕ отправляем
+            column_id: columnId,
+            lead_order: leadOrder
         }),
         credentials: 'same-origin'
     })
     .then(r => r.json())
     .then(d => {
         console.log('Moved:', d);
-        // Обновляем статистику в старой и новой колонках
         if (oldColumnId && oldColumnId !== String(columnId)) {
             updateColumnStats(oldColumnId);
         }
@@ -515,13 +507,32 @@ function drop(event, columnId) {
     })
     .catch(e => console.error(e));
 
-    // Cleanup
     document.addEventListener('dragend', () => {
         if (dragged) {
             dragged.classList.remove('dragging');
             dragged = null;
         }
     }, { once: true });
+}
+
+// ✅ Вспомогательная функция: находит карточку, перед которой нужно вставить
+function getDragAfterElement(container, y) {
+    // Берём все карточки КРОМЕ той, которую тащим
+    const draggableElements = [...container.querySelectorAll('.kanban-card:not(.dragging)')];
+
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        // Расстояние от курсора до центра карточки
+        const offset = y - box.top - box.height / 2;
+
+        // Нас интересуют только карточки, которые НИЖЕ курсора (offset < 0)
+        // Ищем ту, у которой offset отрицательный и ближе всего к 0
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
 // ======== ПРИОРИТЕТЫ ========

@@ -46,6 +46,11 @@
 
     --btn-add-bg: #2196f3;
     --btn-add-hover: #1976d2;
+
+    --notification-success: var(--btn-save-bg);
+    --notification-error: var(--btn-danger);
+    --notification-info: var(--accent-primary);
+    --notification-text: #ffffff;
 }
 
 /* Белая тема */
@@ -71,6 +76,11 @@ body.light-theme {
 
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+    --notification-success: var(--btn-save-bg);
+    --notification-error: var(--btn-danger);
+    --notification-info: var(--accent-primary);
+    --notification-text: #ffffff;
 }
 
 /* === ОБЩИЕ СТИЛИ === */
@@ -554,5 +564,51 @@ main {
 
     .kanban-column {
         min-width: 260px;
+    }
+}
+
+/* === УВЕДОМЛЕНИЯ (с CSS-переменными темы) === */
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 6px;
+    z-index: 10000;
+
+    /* Цвет текста — всегда контрастный */
+    color: var(--notification-text);
+
+    font-weight: 500;
+    font-size: 14px;
+    box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.3));
+    animation: slideIn 0.3s ease;
+
+    /* Плавное исчезновение */
+    transition: opacity 0.2s ease;
+}
+
+.notification.success { background: var(--notification-success); }
+.notification.error { background: var(--notification-error); }
+.notification.info { background: var(--notification-info); }
+
+/* Анимации */
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+}
+
+/* Адаптив: на мобильных — на всю ширину */
+@media (max-width: 768px) {
+    .notification {
+        left: 20px;
+        right: 20px;
+        max-width: calc(100% - 40px);
     }
 }

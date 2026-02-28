@@ -626,32 +626,6 @@ main {
     transform: translateY(1px);
 }
 
-/* === УВЕДОМЛЕНИЯ === */
-.notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 12px 20px;
-    border-radius: 6px;
-    z-index: 10000;
-    color: white;
-    font-weight: 500;
-    font-size: 14px;
-    box-shadow: var(--shadow-md);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    animation: slideIn 0.3s ease;
-}
-
-.notification.success {
-    background: #10b981;
-}
-
-.notification.error {
-    background: #ef4444;
-}
-
 /* === АНИМАЦИИ === */
 @keyframes slideIn {
     from {
@@ -728,3 +702,4 @@ main {
     white-space: nowrap;
     border-width: 0;
 }
+
