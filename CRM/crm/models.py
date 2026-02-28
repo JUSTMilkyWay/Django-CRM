@@ -19,6 +19,21 @@ class KanbanColumn(models.Model):
         return self.title
 
 
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+
+    # Настройки видимости полей
+    show_inn = models.BooleanField(default=True)
+    show_partner = models.BooleanField(default=False)
+    show_amount = models.BooleanField(default=True)
+    show_contact_person = models.BooleanField(default=True)
+    show_phone = models.BooleanField(default=True)
+    show_email = models.BooleanField(default=True)
+    show_city = models.BooleanField(default=True)
+    show_source = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'Profile: {self.user.username}'
 
 class Lead(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='leads')

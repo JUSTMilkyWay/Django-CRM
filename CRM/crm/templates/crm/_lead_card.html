@@ -9,7 +9,7 @@
     <div class="card-header">
         <div class="lead-info">
             <div class="lead-name">{{ lead.company_name }}</div>
-            {% if lead.inn %}
+            {% if user.profile.show_inn and lead.inn %}
                 <small class="lead-inn" data-key="inn">ИНН: {{ lead.inn }}</small>
             {% endif %}
         </div>

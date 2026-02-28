@@ -10,6 +10,20 @@
 
 {% include 'crm/crm_header.html' with active_tab='leads' %}
 
+<!-- Передаём настройки профиля в JS -->
+<script id="user-permissions" type="application/json">
+{
+    "show_partner": {{ user.profile.show_partner|default:False|lower }},
+    "show_inn": {{ user.profile.show_inn|default:True|lower }},
+    "show_amount": {{ user.profile.show_amount|default:True|lower }},
+    "show_contact_person": {{ user.profile.show_contact_person|default:True|lower }},
+    "show_phone": {{ user.profile.show_phone|default:True|lower }},
+    "show_email": {{ user.profile.show_email|default:True|lower }},
+    "show_city": {{ user.profile.show_city|default:True|lower }},
+    "show_source": {{ user.profile.show_source|default:False|lower }}
+}
+</script>
+
 <div class="crm crm-page">
     <div class="kanban">
         {% for column in columns %}

@@ -1,36 +1,89 @@
+// ======== НАСТРОЙКИ ПОЛЬЗОВАТЕЛЯ ========
+const USER_PERMS = JSON.parse(
+    document.getElementById('user-permissions')?.textContent || '{}'
+);
+
 // ======== КОНФИГУРАЦИЯ ПОЛЕЙ КАРТОЧКИ ========
 const LEAD_CARD_FIELDS = {
     inn: {
         label: 'ИНН',
-        icon: 'hash',
-        visible: (data, perms) => perms?.show_inn !== false && data.inn,
-        format: (val) => val // можно добавить форматирование
+        icon: null,
+        visible: (data) => USER_PERMS.show_inn !== false && data.inn,
+        format: (val) => val
     },
     contact_person: {
         label: 'Контактное лицо',
-        icon: 'user',
-        visible: (data) => !!data.contact_person
+        icon: null,
+        visible: (data) => USER_PERMS.show_contact_person !== false && data.contact_person
     },
     contact_phone: {
         label: 'Телефон',
-        icon: 'phone',
-        visible: (data) => !!data.contact_phone,
-        format: (val) => val ? val.replace(/(\d{3})(\d{3})(\d{2})(\d{2})/, '+7 ($1) $2-$3-$4') : val
+        icon: null,
+        visible: (data) => USER_PERMS.show_phone !== false && data.contact_phone,
+        format: (val) => {
+            if (!val) return val;
+            const digits = val.replace(/\D/g, '');
+            if (digits.length === 11 && digits.startsWith('7')) {
+                return `+7 (${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7,9)}-${digits.slice(9)}`;
+            }
+            return val;
+        }
+    },
+    contact_email: {
+        label: 'Email',
+        icon: null,
+        visible: (data) => USER_PERMS.show_email !== false && data.contact_email
+    },
+    city: {
+        label: 'Город',
+        icon: null,
+        visible: (data) => USER_PERMS.show_city !== false && data.city
+    },
+    source: {
+        label: 'Источник',
+        icon: null,
+        visible: (data) => USER_PERMS.show_source !== false && data.source
     },
     partner_name: {
         label: 'Партнёр',
-        icon: 'user-plus',
-        visible: (data, perms) => perms?.show_partner && data.partner_name
-    },
-    total_amount: {
-        label: 'Сумма',
-        icon: 'rub',
-        visible: (data, perms) => perms?.show_amount !== false && data.total_amount,
-        format: (val) => val ? Number(val).toLocaleString('ru-RU', {maximumFractionDigits: 0}) + ' ₽' : null
-    },
+        icon: null,
+        visible: (data) => USER_PERMS.show_partner && data.partner_name
+    }
 };
 
-// ======== CSRF ========
+// ======== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ========
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        for (let cookie of document.cookie.split(';')) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Рендер одного поля
+function renderField(value, fieldKey, label) {
+    if (!value) return '';
+    return `
+    <div class="card-field" data-key="${fieldKey}">
+        <span class="field-label">${label}:</span>
+        <span class="field-value">${escapeHtml(value)}</span>
+    </div>`;
+}
+
+// ======== РЕНДЕР КАРТОЧКИ ========
 function renderLeadCard(data) {
     const priority = data.priority || '';
     const priorityClass = priority || 'not_set';
@@ -40,7 +93,7 @@ function renderLeadCard(data) {
     card.dataset.id = data.id;
     card.dataset.priority = priority;
     card.draggable = true;
-    card.ondragstart = drag;
+    card.ondragstart = (e) => drag(e);
 
     card.onclick = (e) => {
         if (!e.target.closest('.card-action-btn')) {
@@ -48,95 +101,154 @@ function renderLeadCard(data) {
         }
     };
 
-    const amountFormatted = data.total_amount
-        ? Number(data.total_amount).toLocaleString('ru-RU', {maximumFractionDigits: 0})
+    // Сумма сделки
+    const amountFormatted = data.total_amount && USER_PERMS.show_amount !== false
+        ? Number(data.total_amount).toLocaleString('ru-RU', { maximumFractionDigits: 0 }) + ' ₽'
         : null;
 
-    // Поля карточки
-    const fieldsMap = {
-        inn: 'ИНН',
-        contact_person: 'Контактное лицо',
-        contact_phone: 'Телефон',
-        contact_email: 'Email',
-        city: 'Город',
-        source: 'Источник',
-        partner_name: 'Партнёр'
-    };
-
-    const fieldsHtml = Object.keys(fieldsMap).map(key => {
-        if (!data[key]) return '';
-        return `<div class="card-field" data-key="${key}"><span class="field-label">${fieldsMap[key]}:</span> <span class="field-value">${data[key]}</span></div>`;
-    }).join('');
+    // Генерация полей через конфиг
+    const fieldsHtml = Object.entries(LEAD_CARD_FIELDS)
+        .filter(([key, cfg]) => cfg.visible?.(data) && data[key])
+        .map(([key, cfg]) => {
+            const value = cfg.format ? cfg.format(data[key]) : data[key];
+            return renderField(value, key, cfg.label);
+        })
+        .join('');
 
     card.innerHTML = `
         <div class="card-header">
             <div class="lead-info">
-                <div class="lead-name">${data.company_name || 'Новый лид'}</div>
-                ${data.inn ? `<small class="lead-inn" data-key="inn">ИНН: ${data.inn}</small>` : ''}
+                <div class="lead-name">${escapeHtml(data.company_name || 'Новый лид')}</div>
+                ${USER_PERMS.show_inn !== false && data.inn
+                    ? `<small class="lead-inn">ИНН: ${escapeHtml(data.inn)}</small>`
+                    : ''}
             </div>
             <div class="card-actions">
-                <button class="card-action-btn edit" title="Редактировать"></button>
-                <button class="card-action-btn delete" title="Удалить"></button>
+                <button class="card-action-btn edit" title="Редактировать">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                </button>
+                <button class="card-action-btn delete" title="Удалить">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
             </div>
         </div>
 
-        ${amountFormatted ? `<div class="card-amount" data-key="total_amount"><span class="amount-value">${amountFormatted} ₽</span></div>` : ''}
+        ${amountFormatted ? `
+        <div class="card-amount" data-key="total_amount">
+            <span class="amount-value">${amountFormatted}</span>
+        </div>` : ''}
 
         <div class="card-fields">
-            ${renderField(data.contact_person, 'contact_person', 'Контактное лицо', 'user')}
-            ${renderField(data.contact_phone, 'contact_phone', 'Телефон', 'phone')}
-            ${renderField(data.contact_email, 'contact_email', 'Email', 'mail')}
-            ${renderField(data.city, 'city', 'Город', 'map-pin')}
-            ${renderField(data.source, 'source', 'Источник', 'target')}
-            ${renderField(data.partner_name, 'partner_name', 'Партнёр', 'user-plus')}
+            ${fieldsHtml}
         </div>
 
         <div class="card-footer">
-            <span class="priority-badge ${priorityClass}">${data.priority_display || 'Не назначен'}</span>
-            <span class="card-date">${data.created_at}</span>
+            <span class="priority-badge ${priorityClass}">
+                ${escapeHtml(data.priority_display || 'Не назначен')}
+            </span>
+            <span class="card-date">${escapeHtml(data.created_at || '')}</span>
         </div>
     `;
 
     // Кнопки
-    card.querySelector('.edit').onclick = e => { e.stopPropagation(); editLead(data.id); };
-    card.querySelector('.delete').onclick = e => { e.stopPropagation(); confirmDelete(data.id); };
+    card.querySelector('.edit').onclick = (e) => { e.stopPropagation(); editLead(data.id); };
+    card.querySelector('.delete').onclick = (e) => { e.stopPropagation(); confirmDelete(data.id); };
 
     return card;
 }
 
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-            cookie = cookie.trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
+// ======== ОБНОВЛЕНИЕ КАРТОЧКИ ========
+function updateCardOnBoard(leadId, data) {
+    const card = document.querySelector(`.kanban-card[data-id='${leadId}']`);
+    if (!card) return;
+
+    if (USER_PERMS.show_inn !== false && data.inn) {
+        if (!innEl) {
+            const leadInfo = card.querySelector('.lead-info');
+            if (leadInfo) {
+                const small = document.createElement('small');
+                small.className = 'lead-inn';
+                small.dataset.key = 'inn';
+                small.textContent = `ИНН: ${escapeHtml(data.inn)}`;
+                leadInfo.appendChild(small);
             }
+        } else {
+            innEl.textContent = `ИНН: ${escapeHtml(data.inn)}`;
         }
+    } else if (innEl) {
+        innEl.remove(); // Скрыть, если ИНН больше не должен показываться
     }
-    return cookieValue;
+
+    // Название компании
+    const leadName = card.querySelector('.lead-name');
+    if (leadName) leadName.textContent = data.company_name || 'Новый лид';
+
+    // Сумма сделки
+    const amountContainer = card.querySelector('.card-amount');
+    if (data.total_amount && USER_PERMS.show_amount !== false) {
+        const formatted = Number(data.total_amount).toLocaleString('ru-RU', { maximumFractionDigits: 0 }) + ' ₽';
+        if (!amountContainer) {
+            const div = document.createElement('div');
+            div.className = 'card-amount';
+            div.dataset.key = 'total_amount';
+            div.innerHTML = `<span class="amount-value">${formatted}</span>`;
+            const header = card.querySelector('.card-header');
+            if (header) header.insertAdjacentElement('afterend', div);
+        } else {
+            amountContainer.querySelector('.amount-value').textContent = formatted;
+        }
+    } else if (amountContainer) {
+        amountContainer.remove();
+    }
+
+    // Поля через конфиг
+    const fieldsContainer = card.querySelector('.card-fields');
+    if (fieldsContainer) {
+        Object.entries(LEAD_CARD_FIELDS).forEach(([key, cfg]) => {
+            let el = fieldsContainer.querySelector(`.card-field[data-key='${key}']`);
+            const shouldShow = cfg.visible?.(data) && data[key];
+            const value = cfg.format ? cfg.format(data[key]) : data[key];
+
+            if (shouldShow && value) {
+                if (!el) {
+                    el = document.createElement('div');
+                    el.className = 'card-field';
+                    el.dataset.key = key;
+                    el.innerHTML = `
+                        <span class="field-label">${cfg.label}:</span>
+                        <span class="field-value">${escapeHtml(value)}</span>`;
+                    fieldsContainer.appendChild(el);
+                } else {
+                    const valSpan = el.querySelector('.field-value');
+                    if (valSpan) valSpan.textContent = value;
+                }
+            } else if (el) {
+                el.remove(); // Скрыть поле, если больше не должно показываться
+            }
+        });
+    }
+
+    // Приоритет
+    if (data.priority) {
+        card.dataset.priority = data.priority;
+        card.classList.remove('priority-not_set', 'priority-low', 'priority-high', 'priority-critical');
+        card.classList.add(`priority-${data.priority}`);
+    }
+
+    // Перепривязка кнопок
+    const editBtn = card.querySelector('.edit');
+    if (editBtn) editBtn.onclick = (e) => { e.stopPropagation(); editLead(leadId); };
+    const deleteBtn = card.querySelector('.delete');
+    if (deleteBtn) deleteBtn.onclick = (e) => { e.stopPropagation(); confirmDelete(leadId); };
 }
 
-// Вспомогательные функции
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function renderField(value, fieldKey, label, iconName = null) {
-    if (!value) return '';
-
-    return `
-    <div class="card-field" data-key="${fieldKey}">
-        ${iconSvg}
-        <span class="field-label">${label}:</span>
-        <span class="field-value">${escapeHtml(value)}</span>
-    </div>`;
-}
-
+// ======== ДОБАВЛЕНИЕ КАРТОЧКИ ========
 function addCard(button, columnId) {
     fetch(`add_lead/${columnId}/`, {
         method: 'POST',
@@ -149,101 +261,23 @@ function addCard(button, columnId) {
     })
     .then(r => r.json())
     .then(data => {
-        if(data.error){ alert(data.error); return; }
+        if (data.error) { alert(data.error); return; }
 
         const container = button.nextElementSibling;
         const card = renderLeadCard(data);
         container.appendChild(card);
 
-        // Обновляем счетчик
         const columnCount = button.parentElement.querySelector('.column-count');
         columnCount.textContent = parseInt(columnCount.textContent) + 1;
 
-        editLead(data.id); // сразу открыть редактирование
+        editLead(data.id);
     })
     .catch(err => { console.error(err); alert('Ошибка при создании лида'); });
 }
 
-// ======== Обновление карточки ========
-function updateCardOnBoard(leadId, data) {
-    const card = document.querySelector(`.kanban-card[data-id='${leadId}']`);
-    if (!card) return;
-
-    // Название компании
-    const leadName = card.querySelector('.lead-name');
-    if (leadName) leadName.textContent = data.company_name || 'Новый лид';
-
-    // Сумма сделки
-    let amountEl = card.querySelector('.card-amount .amount-value');
-    if (data.total_amount) {
-        if (!amountEl) {
-            const amountDiv = document.createElement('div');
-            amountDiv.className = 'card-amount';
-            amountDiv.innerHTML = `<span class="amount-value">${data.total_amount} ₽</span>`;
-            card.appendChild(amountDiv);
-        } else {
-            amountEl.textContent = `${data.total_amount} ₽`;
-        }
-    } else if (amountEl) {
-        amountEl.closest('.card-amount').remove();
-    }
-
-    // Контейнер для полей
-    const fieldsContainer = card.querySelector('.card-fields');
-    if (!fieldsContainer) return;
-
-    // Поля и их селекторы
-    const fieldsMap = {
-        inn: 'ИНН',
-        contact_person: 'Контактное лицо',
-        contact_phone: 'Телефон',
-        contact_email: 'Email',
-        city: 'Город',
-        source: 'Источник',
-        partner_name: 'Партнёр'
-    };
-
-    for (const key in fieldsMap) {
-        // Ищем поле по data-key
-        let el = fieldsContainer.querySelector(`.card-field[data-key='${key}']`);
-
-        if (data[key]) {
-            if (!el) {
-                el = document.createElement('div');
-                el.className = 'card-field';
-                el.dataset.key = key;
-                el.innerHTML = `<strong>${fieldsMap[key]}:</strong> <span>${escapeHtml(data[key])}</span>`;
-                fieldsContainer.appendChild(el);
-            } else {
-                const valueSpan = el.querySelector('.field-value');
-                if (valueSpan) {
-                    valueSpan.textContent = data[key]; // безопасно, т.к. escapeHtml уже применён при рендере
-                }
-            }
-        } else if (el) {
-            el.remove();
-        }
-    }
-
-    // Приоритет
-    if (data.priority) {
-        card.dataset.priority = data.priority;
-        card.classList.remove('priority-not_set','priority-low','priority-high','priority-critical');
-        card.classList.add(`priority-${data.priority}`);
-    }
-
-    // Кнопки
-    const editBtn = card.querySelector('.edit');
-    if (editBtn) editBtn.onclick = e => { e.stopPropagation(); editLead(leadId); };
-
-    const deleteBtn = card.querySelector('.delete');
-    if (deleteBtn) deleteBtn.onclick = e => { e.stopPropagation(); if(confirm('Удалить эту карточку?')) deleteCard(leadId); };
-}
-
-// ======== Удаление карточки ========
+// ======== УДАЛЕНИЕ КАРТОЧКИ ========
 function confirmDelete(leadId) {
     if (confirm('Вы уверены, что хотите удалить этот лид?')) {
-        // Логируем для отладки
         console.log('Deleting lead ID:', leadId);
 
         fetch(`/crm/delete_lead/${leadId}/`, {
@@ -252,7 +286,6 @@ function confirmDelete(leadId) {
                 'X-CSRFToken': getCookie('csrftoken'),
                 'Content-Type': 'application/json'
             },
-            // Важно: для POST обычно нужен body, даже пустой
             body: JSON.stringify({})
         })
         .then(response => {
@@ -272,7 +305,7 @@ function confirmDelete(leadId) {
     }
 }
 
-// ======== Уведомления ========
+// ======== УВЕДОМЛЕНИЯ ========
 function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
@@ -301,9 +334,9 @@ document.head.insertAdjacentHTML('beforeend', `
 </style>
 `);
 
+// ======== МОДАЛЬНОЕ ОКНО ========
 let currentLeadId = null;
 
-// ======== Edit Lead ========
 function editLead(leadId) {
     currentLeadId = leadId;
 
@@ -329,9 +362,25 @@ function editLead(leadId) {
     });
 }
 
-// ======== Drag & Drop ========
+function closeModal() {
+    document.getElementById('leadModal').style.display = 'none';
+}
+
+function updateLegalNameHeader(name) {
+    const el = document.getElementById('modal_legal_name_base');
+    if (el) {
+        el.textContent = name || 'Новый лид';
+        el.style.display = 'block';
+    }
+}
+
+// ======== DRAG & DROP ========
 let dragged;
-function drag(event) { dragged = event.currentTarget; event.dataTransfer.setData("text/plain",""); dragged.classList.add('dragging'); }
+function drag(event) {
+    dragged = event.currentTarget;
+    event.dataTransfer.setData("text/plain","");
+    dragged.classList.add('dragging');
+}
 function allowDrop(event) { event.preventDefault(); }
 function drop(event, columnId) {
     event.preventDefault();
@@ -341,33 +390,36 @@ function drop(event, columnId) {
 
     fetch(`move_lead/${dragged.dataset.id}/`, {
         method:'POST',
-        headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken'),'X-Requested-With':'XMLHttpRequest'},
+        headers:{
+            'Content-Type':'application/json',
+            'X-CSRFToken':getCookie('csrftoken'),
+            'X-Requested-With':'XMLHttpRequest'
+        },
         body: JSON.stringify({column_id: columnId}),
         credentials:'same-origin'
     }).then(r=>r.json()).then(d=>console.log('Moved:',d)).catch(e=>console.error(e));
 }
-document.addEventListener('dragend',()=>{if(dragged){dragged.classList.remove('dragging'); dragged=null;}});
+document.addEventListener('dragend',()=>{
+    if(dragged){
+        dragged.classList.remove('dragging');
+        dragged=null;
+    }
+});
 
-// ======== Modal ========
-function openLeadModal(leadId){console.log('Открытие модального окна для лида:', leadId);alert('Добавь функцию get_lead в views.py');}
-function closeModal(){document.getElementById('leadModal').style.display='none';}
-function updateLegalNameHeader(name){const el=document.getElementById('modal_legal_name_base');el.textContent=name||'Новый лид';el.style.display='block';}
-
-// ======== Priority ========
+// ======== ПРИОРИТЕТЫ ========
 function applyPriorityColors(){
     document.querySelectorAll('.kanban-card').forEach(card=>{
         card.classList.remove('priority-not_set','priority-low','priority-high','priority-critical');
         card.classList.add(`priority-${card.dataset.priority||''}`);
     });
 }
-document.addEventListener('DOMContentLoaded',applyPriorityColors);
+document.addEventListener('DOMContentLoaded', applyPriorityColors);
 
-// ======== Save Lead ========
+// ======== СОХРАНЕНИЕ ЛИДА ========
 function saveLead() {
     if (!currentLeadId) return;
 
     const data = {};
-    // Поля и их "человеческие имена"
     const fields = {
         company_name: 'Название компании',
         legal_form: 'Форма организации',
@@ -392,11 +444,9 @@ function saveLead() {
         comment: 'Комментарий'
     };
 
-    // Собираем данные из модального окна
     for (const key in fields) {
         const el = document.getElementById(`modal_${key}`);
         if (!el) continue;
-
         if (key === 'total_amount') {
             data[key] = parseFloat(el.value) || 0;
         } else {
@@ -404,18 +454,13 @@ function saveLead() {
         }
     }
 
-    // Проверяем обязательные поля
     const required = ['company_name', 'legal_form', 'legal_name'];
     const missing = required.filter(f => !data[f]);
     if (missing.length) {
-        alert(
-            'Заполните обязательные поля:\n• ' +
-            missing.map(f => fields[f]).join('\n• ')
-        );
+        alert('Заполните обязательные поля:\n• ' + missing.map(f => fields[f]).join('\n• '));
         return;
     }
 
-    // Отправка на сервер
     fetch(`update_lead/${currentLeadId}/`, {
         method: 'POST',
         headers: {
@@ -429,8 +474,8 @@ function saveLead() {
         if (result.error) {
             alert('Ошибка: ' + result.error);
         } else {
-            updateCardOnBoard(currentLeadId, data); // обновление карточки
-            updateLegalNameHeader(data.legal_name); // если нужно обновить header
+            updateCardOnBoard(currentLeadId, data);
+            updateLegalNameHeader(data.legal_name);
             showNotification('Сохранено!', 'success');
             applyPriorityColors();
         }
@@ -441,77 +486,148 @@ function saveLead() {
     });
 }
 
-// ======== Checko API ========
+// ======== CHECKO API ========
 function makeRequestChecko(){
-    const inn=document.getElementById('modal_inn').value.trim();
-    if(!inn){alert('Введите ИНН');document.getElementById('modal_inn').focus();return;}
-    if(!/^\d{10}$/.test(inn)){alert('ИНН должен быть 10 цифр');return;}
+    const inn = document.getElementById('modal_inn')?.value.trim();
+    if(!inn){ alert('Введите ИНН'); document.getElementById('modal_inn')?.focus(); return; }
+    if(!/^\d{10}$/.test(inn)){ alert('ИНН должен быть 10 цифр'); return; }
 
-    const button=document.querySelector('.api-checko-btn');const txt=button.textContent;
-    button.textContent='Загрузка...';button.disabled=true;
+    const button = document.querySelector('.api-checko-btn');
+    const txt = button?.textContent;
+    if(button){
+        button.textContent = 'Загрузка...';
+        button.disabled = true;
+    }
 
     fetch('/companies/api/get_company/',{
         method:'POST',
-        headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken'),'X-Requested-With':'XMLHttpRequest'},
+        headers:{
+            'Content-Type':'application/json',
+            'X-CSRFToken':getCookie('csrftoken'),
+            'X-Requested-With':'XMLHttpRequest'
+        },
         body:JSON.stringify({inn})
-    }).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();})
-    .then(data=>{
-        button.textContent=txt;button.disabled=false;
-        if(data.success){fillFormWithCompanyData(data.data);showNotification('Данные загружены','success');}
-        else showNotification('Ошибка: '+(data.error||'Не удалось получить данные'),'error');
-    }).catch(e=>{button.textContent=txt;button.disabled=false;showNotification('Ошибка сети: '+e.message,'error');});
+    })
+    .then(r => {
+        if(!r.ok) throw new Error(r.status);
+        return r.json();
+    })
+    .then(data => {
+        if(button){
+            button.textContent = txt;
+            button.disabled = false;
+        }
+        if(data.success){
+            fillFormWithCompanyData(data.data);
+            showNotification('Данные загружены','success');
+        } else {
+            showNotification('Ошибка: ' + (data.error || 'Не удалось получить данные'),'error');
+        }
+    })
+    .catch(e => {
+        if(button){
+            button.textContent = txt;
+            button.disabled = false;
+        }
+        showNotification('Ошибка сети: ' + e.message, 'error');
+    });
 }
 
 function fillFormWithCompanyData(companyData){
-    console.log('Данные Checko:',companyData,companyData.raw_data);
-    let data=companyData;
-    if(companyData.raw_data&&companyData.raw_data.data){data=companyData.raw_data.data;}
+    console.log('Данные Checko:', companyData, companyData.raw_data);
+    let data = companyData;
+    if(companyData.raw_data && companyData.raw_data.data){
+        data = companyData.raw_data.data;
+    }
 
-    const fieldMapping={
-        'modal_company_name':['НаимСокр','НаимПолн','company_name'],
-        'modal_legal_name':['НаимПолн','НаимСокр','legal_name'],
-        'modal_legal_form':['ОКОПФ.Наим','legal_form'],
-        'modal_inn':['ИНН','inn'],
-        'modal_ogrn':['ОГРН','ogrn'],
-        'modal_kpp':['КПП','kpp'],
-        'modal_director_fio':()=>getDirectorName(data),
-        'modal_address':()=>getAddress(data),
-        'modal_city':()=>getCity(data),
-        'modal_phone':()=>getPhone(data),
-        'modal_email':()=>getEmail(data),
-        'modal_website':['Контакты.ВебСайт','website']
+    const fieldMapping = {
+        'modal_company_name': ['НаимСокр','НаимПолн','company_name'],
+        'modal_legal_name': ['НаимПолн','НаимСокр','legal_name'],
+        'modal_legal_form': ['ОКОПФ.Наим','legal_form'],
+        'modal_inn': ['ИНН','inn'],
+        'modal_ogrn': ['ОГРН','ogrn'],
+        'modal_kpp': ['КПП','kpp'],
+        'modal_director_fio': () => getDirectorName(data),
+        'modal_address': () => getAddress(data),
+        'modal_city': () => getCity(data),
+        'modal_phone': () => getPhone(data),
+        'modal_email': () => getEmail(data),
+        'modal_website': ['Контакты.ВебСайт','website']
     };
 
     for(const [fieldId, val] of Object.entries(fieldMapping)){
-        const el=document.getElementById(fieldId);
+        const el = document.getElementById(fieldId);
         if(!el) continue;
-        let value=typeof val==='function'?val():val;
-        if(Array.isArray(value)) value=findValueByKeys(data,value);
-        if(value!==null&&value!==undefined&&value!=='') el.value=value;
+        let value = typeof val === 'function' ? val() : val;
+        if(Array.isArray(value)) value = findValueByKeys(data, value);
+        if(value !== null && value !== undefined && value !== '') el.value = value;
     }
 
-    // Авто определение юридической формы
-    const name=document.getElementById('modal_company_name').value;
-    document.getElementById('modal_legal_form').value=detectLegalForm(name);
+    const name = document.getElementById('modal_company_name')?.value;
+    const legalFormEl = document.getElementById('modal_legal_form');
+    if(legalFormEl && name){
+        legalFormEl.value = detectLegalForm(name);
+    }
 
-    updateLegalNameHeader(data['НаимПолн']||data['НаимСокр']||companyData.legal_name||companyData.company_name);
+    updateLegalNameHeader(data['НаимПолн'] || data['НаимСокр'] || companyData.legal_name || companyData.company_name);
 }
 
-// ======== Вспомогательные ========
+// ======== ВСПОМОГАТЕЛЬНЫЕ ДЛЯ CHECKO ========
 function detectLegalForm(name){
     if(!name) return 'другая';
-    const n=name.toUpperCase();
-    if(n.includes('ООО')||n.includes('ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ')) return 'ООО';
-    if(n.includes('АО')||n.includes('АКЦИОНЕРНОЕ ОБЩЕСТВО')) return 'АО';
-    if(n.includes('ЗАО')||n.includes('ЗАКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО')) return 'ЗАО';
-    if(n.includes('ИП')||n.includes('ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ')) return 'ИП';
+    const n = name.toUpperCase();
+    if(n.includes('ООО') || n.includes('ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ')) return 'ООО';
+    if(n.includes('АО') || n.includes('АКЦИОНЕРНОЕ ОБЩЕСТВО')) return 'АО';
+    if(n.includes('ЗАО') || n.includes('ЗАКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО')) return 'ЗАО';
+    if(n.includes('ИП') || n.includes('ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ')) return 'ИП';
     return 'другая';
 }
 
-function findValueByKeys(data, keys){for(const key of keys){const val=getNestedValue(data,key);if(val!==null&&val!==undefined&&val!=='') return val;}return null;}
-function getNestedValue(obj,path){return path.split('.').reduce((c,k)=>c&&c[k]!==undefined?c[k]:null,obj);}
-function getDirectorName(data){if(data.Руковод&&Array.isArray(data.Руковод)&&data.Руковод.length>0){return data.Руковод[0].ФИО||null;}return null;}
-function getAddress(data){if(data.ЮрАдрес){return data.ЮрАдрес.АдресРФ||data.ЮрАдрес.НасПункт||null;}return null;}
-function getCity(data){if(data.Регион&&data.Регион.Наим) return data.Регион.Наим;if(data.ЮрАдрес&&data.ЮрАдрес.НасПункт){const m=data.ЮрАдрес.НасПункт.match(/г\.\s*([^,]+)/);return m?m[1].trim():data.ЮрАдрес.НасПункт;}return null;}
-function getPhone(data){if(data.Контакты&&Array.isArray(data.Контакты.Тел)&&data.Контакты.Тел.length>0) return data.Контакты.Тел[0];return null;}
-function getEmail(data){if(data.Контакты&&Array.isArray(data.Контакты.Емэйл)&&data.Контакты.Емэйл.length>0) return data.Контакты.Емэйл[0];return null;}
+function findValueByKeys(data, keys){
+    for(const key of keys){
+        const val = getNestedValue(data, key);
+        if(val !== null && val !== undefined && val !== '') return val;
+    }
+    return null;
+}
+
+function getNestedValue(obj, path){
+    return path.split('.').reduce((c, k) => c && c[k] !== undefined ? c[k] : null, obj);
+}
+
+function getDirectorName(data){
+    if(data.Руковод && Array.isArray(data.Руковод) && data.Руковод.length > 0){
+        return data.Руковод[0].ФИО || null;
+    }
+    return null;
+}
+
+function getAddress(data){
+    if(data.ЮрАдрес){
+        return data.ЮрАдрес.АдресРФ || data.ЮрАдрес.НасПункт || null;
+    }
+    return null;
+}
+
+function getCity(data){
+    if(data.Регион && data.Регион.Наим) return data.Регион.Наим;
+    if(data.ЮрАдрес && data.ЮрАдрес.НасПункт){
+        const m = data.ЮрАдрес.НасПункт.match(/г\.\s*([^,]+)/);
+        return m ? m[1].trim() : data.ЮрАдрес.НасПункт;
+    }
+    return null;
+}
+
+function getPhone(data){
+    if(data.Контакты && Array.isArray(data.Контакты.Тел) && data.Контакты.Тел.length > 0) {
+        return data.Контакты.Тел[0];
+    }
+    return null;
+}
+
+function getEmail(data){
+    if(data.Контакты && Array.isArray(data.Контакты.Емэйл) && data.Контакты.Емэйл.length > 0) {
+        return data.Контакты.Емэйл[0];
+    }
+    return null;
+}
