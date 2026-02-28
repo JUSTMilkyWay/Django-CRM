@@ -5,6 +5,8 @@
 {% block title %}CRM{% endblock %}
 {% block content %}
 
+{% load humanize %}
+
 <!-- Подключаем CRM CSS -->
 <link rel="stylesheet" href="{% static 'crm/css/kanban.css' %}">
 
@@ -30,8 +32,14 @@
         <div class="kanban-column" ondragover="allowDrop(event)" ondrop="drop(event, {{ column.id }})">
             <div class="column-header">
                 <h2>{{ column.title }}</h2>
-                <span class="column-count">{{ column.leads.count }}</span>
+                <div class="column-stats">
+                    <span class="column-count">{{ column.leads.count }}</span>
+                    <span class="column-sum" data-column-id="{{ column.id }}">
+                        {{ column.total_sum|default:0 }} ₽
+                    </span>
+                </div>
             </div>
+
             <button class="add-card-btn" onclick="addCard(this, {{ column.id }})">
                 <i class="fas fa-plus"></i> Добавить лид
             </button>
@@ -121,7 +129,13 @@
                     </div>
                     <div class="form-group">
                         <label>Сумма (₽)</label>
-                        <input type="number" id="modal_total_amount" placeholder="0" min="0">
+                        <input type="text"
+                               id="modal_total_amount"
+                               name="total_amount"
+                               placeholder="Сумма сделки"
+                               class="amount-input"
+                               oninput="formatAmountInput(this)"
+                               onblur="formatAmountOnBlur(this)">
                     </div>
                 </div>
                 <div class="form-group">

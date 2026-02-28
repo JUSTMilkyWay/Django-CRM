@@ -13,6 +13,21 @@ from .models import Lead, KanbanColumn
 from .models import KanbanColumn, Lead
 
 
+from django.db.models import Sum
+
+def crm_view(request):
+    columns = KanbanColumn.objects.filter(user=request.user).prefetch_related('leads')
+
+    for column in columns:
+        result = column.leads.aggregate(total=Sum('total_amount'))
+        column.total_sum = result['total'] or 0  # ← Важно: или 0, если None
+
+    return render(request, 'crm/crm.html', {
+        'columns': columns,
+        # ...
+    })
+
+
 @login_required
 def crm_settings(request):
     columns = KanbanColumn.objects.filter(

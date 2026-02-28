@@ -3,13 +3,57 @@ const USER_PERMS = JSON.parse(
     document.getElementById('user-permissions')?.textContent || '{}'
 );
 
+function formatPhone(phone) {
+    if (!phone) return '';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 11 && (digits.startsWith('7') || digits.startsWith('8'))) {
+        return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 9)}-${digits.slice(9, 11)}`;
+    }
+    if (digits.length === 10) {
+        return `+7 (${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 8)}-${digits.slice(8, 10)}`;
+    }
+    return phone;
+}
+
+function formatAmountInput(input) {
+    const raw = input.value.replace(/[^\d,]/g, ''); // Только цифры и запятая
+    input.dataset.raw = raw; // Сохраняем "сырое" значение
+    // Не форматируем на лету, чтобы не "скакал" курсор
+}
+
+// Форматирование при потере фокуса
+function formatAmountOnBlur(input) {
+    const raw = input.dataset.raw || input.value.replace(/[^\d,]/g, '');
+    const formatted = formatAmountDisplay(raw);
+    input.value = formatted;
+    input.dataset.raw = cleanAmountValue(formatted).toString();
+}
+
+function formatAmountDisplay(value) {
+    if (value === null || value === undefined || value === '') return '';
+    const num = parseFloat(String(value).replace(/\s/g, '').replace(',', '.'));
+    if (isNaN(num)) return '';
+    return num.toLocaleString('ru-RU', { maximumFractionDigits: 0 });
+}
+
+// Очистка числа от пробелов для отправки на сервер: "1 000 000" → 1000000
+function cleanAmountValue(value) {
+    if (!value) return 0;
+    const cleaned = String(value).replace(/\s/g, '').replace(',', '.');
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
+}
+
+function unformatNumber(value) {
+    if (!value) return '';
+    return String(value).replace(/\s/g, '').replace(',', '.');
+}
+
 // ======== КОНФИГУРАЦИЯ ПОЛЕЙ КАРТОЧКИ ========
 const LEAD_CARD_FIELDS = {
     inn: {
         label: 'ИНН',
-        icon: null,
         visible: (data) => USER_PERMS.show_inn !== false && data.inn,
-        format: (val) => val
     },
     contact_person: {
         label: 'Контактное лицо',
@@ -17,14 +61,18 @@ const LEAD_CARD_FIELDS = {
         visible: (data) => USER_PERMS.show_contact_person !== false && data.contact_person
     },
     contact_phone: {
-        label: 'Телефон',
+        label: 'Контактный телефон:',
         icon: null,
         visible: (data) => USER_PERMS.show_phone !== false && data.contact_phone,
         format: (val) => {
-            if (!val) return val;
+           if (!val) return '';
+            // Оставляем только цифры
             const digits = val.replace(/\D/g, '');
             if (digits.length === 11 && digits.startsWith('7')) {
-                return `+7 (${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7,9)}-${digits.slice(9)}`;
+                return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 9)}-${digits.slice(9, 11)}`;
+            }
+            if (digits.length === 11 && digits.startsWith('8')) {
+                return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 9)}-${digits.slice(9, 11)}`;
             }
             return val;
         }
@@ -119,9 +167,6 @@ function renderLeadCard(data) {
         <div class="card-header">
             <div class="lead-info">
                 <div class="lead-name">${escapeHtml(data.company_name || 'Новый лид')}</div>
-                ${USER_PERMS.show_inn !== false && data.inn
-                    ? `<small class="lead-inn">ИНН: ${escapeHtml(data.inn)}</small>`
-                    : ''}
             </div>
             <div class="card-actions">
                 <button class="card-action-btn edit" title="Редактировать">
@@ -167,23 +212,6 @@ function renderLeadCard(data) {
 function updateCardOnBoard(leadId, data) {
     const card = document.querySelector(`.kanban-card[data-id='${leadId}']`);
     if (!card) return;
-
-    if (USER_PERMS.show_inn !== false && data.inn) {
-        if (!innEl) {
-            const leadInfo = card.querySelector('.lead-info');
-            if (leadInfo) {
-                const small = document.createElement('small');
-                small.className = 'lead-inn';
-                small.dataset.key = 'inn';
-                small.textContent = `ИНН: ${escapeHtml(data.inn)}`;
-                leadInfo.appendChild(small);
-            }
-        } else {
-            innEl.textContent = `ИНН: ${escapeHtml(data.inn)}`;
-        }
-    } else if (innEl) {
-        innEl.remove(); // Скрыть, если ИНН больше не должен показываться
-    }
 
     // Название компании
     const leadName = card.querySelector('.lead-name');
@@ -358,6 +386,17 @@ function editLead(leadId) {
             el.value = data[field] || '';
         });
 
+        try {
+            const amountEl = document.getElementById('modal_total_amount');
+            if (amountEl && data.total_amount) {
+                const formatted = formatAmountDisplay(data.total_amount);
+                amountEl.value = formatted;
+                amountEl.dataset.raw = cleanAmountValue(formatted).toString();
+            }
+        } catch (e) {
+            console.warn('⚠️ Ошибка форматирования суммы:', e);
+        }
+
         document.getElementById('leadModal').style.display = 'block';
     });
 }
@@ -448,7 +487,8 @@ function saveLead() {
         const el = document.getElementById(`modal_${key}`);
         if (!el) continue;
         if (key === 'total_amount') {
-            data[key] = parseFloat(el.value) || 0;
+            const rawValue = el.dataset.raw || unformatNumber(el.value);
+            data[key] = parseFloat(rawValue) || 0;
         } else {
             data[key] = el.value.trim();
         }

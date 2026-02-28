@@ -1,5 +1,6 @@
 {% load humanize %}
 {% with priority=lead.priority|default:'' %}
+{% load humanize phone_filter %}
 <div class="kanban-card priority-{{ priority }}"
      data-id="{{ lead.id }}"
      draggable="true"
@@ -9,9 +10,6 @@
     <div class="card-header">
         <div class="lead-info">
             <div class="lead-name">{{ lead.company_name }}</div>
-            {% if user.profile.show_inn and lead.inn %}
-                <small class="lead-inn" data-key="inn">ИНН: {{ lead.inn }}</small>
-            {% endif %}
         </div>
         <div class="card-actions">
             <button class="card-action-btn edit"
@@ -35,42 +33,49 @@
     {% endif %}
 
     <div class="card-fields">
-        {% if user.profile.show_contact_person|default:True and lead.contact_person %}
+        {% if user.profile.show_inn and lead.inn %}
+            <div class="card-field" data-key="inn">
+                <span class="field-label">ИНН: </span>
+                <span class="field-value">{{ lead.inn }}</span>
+            </div>
+        {% endif %}
+
+        {% if user.profile.show_contact_person and lead.contact_person %}
         <div class="card-field" data-key="contact_person">
             <span class="field-label">Контактное лицо:</span>
             <span class="field-value">{{ lead.contact_person }}</span>
         </div>
         {% endif %}
 
-        {% if user.profile.show_phone|default:True and lead.contact_phone %}
+        {% if user.profile.show_phone and lead.contact_phone %}
         <div class="card-field" data-key="contact_phone">
-            <span class="field-label">Телефон:</span>
-            <span class="field-value">{{ lead.contact_phone }}</span>
+            <span class="field-label">Контактный телефон:</span>
+            <span class="field-value">{{ lead.contact_phone|format_phone }}</span>
         </div>
         {% endif %}
 
-        {% if user.profile.show_email|default:True and lead.contact_email %}
+        {% if user.profile.show_email and lead.contact_email %}
         <div class="card-field" data-key="contact_email">
             <span class="field-label">Email:</span>
             <span class="field-value">{{ lead.contact_email }}</span>
         </div>
         {% endif %}
 
-        {% if user.profile.show_city|default:True and lead.city %}
+        {% if user.profile.show_city and lead.city %}
         <div class="card-field" data-key="city">
             <span class="field-label">Город:</span>
             <span class="field-value">{{ lead.city }}</span>
         </div>
         {% endif %}
 
-        {% if user.profile.show_source|default:False and lead.source %}
+        {% if user.profile.show_source and lead.source %}
         <div class="card-field" data-key="source">
             <span class="field-label">Источник:</span>
             <span class="field-value">{{ lead.source }}</span>
         </div>
         {% endif %}
 
-        {% if user.profile.show_partner|default:False and lead.partner_name %}
+        {% if user.profile.show_partner and lead.partner_name %}
         <div class="card-field" data-key="partner_name">
             <span class="field-label">Партнёр:</span>
             <span class="field-value">{{ lead.partner_name }}</span>

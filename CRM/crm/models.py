@@ -35,10 +35,12 @@ class Profile(models.Model):
     def __str__(self):
         return f'Profile: {self.user.username}'
 
+
+
 class Lead(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='leads')
     company_name = models.CharField(max_length=100, blank=True, null=True)
-    total_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='Сумма сделки')
+    total_amount = models.DecimalField(max_digits=20, decimal_places=2, default=0, verbose_name='Сумма сделки')
 
     inn = models.CharField(max_length=12, blank=True, null=True)
     ogrn = models.CharField(max_length=13, blank=True, null=True)
