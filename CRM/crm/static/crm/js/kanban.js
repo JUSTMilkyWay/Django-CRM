@@ -1,4 +1,4 @@
-//kanban,js
+//kanban.js
 // ======== НАСТРОЙКИ ПОЛЬЗОВАТЕЛЯ ========
 const USER_PERMS = JSON.parse(
     document.getElementById('user-permissions')?.textContent || '{}'
@@ -322,36 +322,44 @@ function addCard(button, columnId) {
     .catch(err => { console.error(err); alert('Ошибка при создании лида'); });
 }
 
-// ======== УДАЛЕНИЕ КАРТОЧКИ ========
-function confirmDelete(leadId) {
-    if (confirm('Вы уверены, что хотите удалить этот лид?')) {
-        console.log('Deleting lead ID:', leadId);
-
-        fetch(`/crm/delete_lead/${leadId}/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({})
-        })
-        .then(response => {
-            console.log('Response status:', response.status);
-            if (response.ok) {
-                location.reload();
-            } else {
-                return response.text().then(text => {
-                    throw new Error(`Ошибка ${response.status}: ${text}`);
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Ошибка удаления:', error);
-            alert('Ошибка при удалении: ' + error.message);
-        });
+// ======== УДАЛЕНИЕ ЛИДА ========
+async function confirmDelete(leadId) {
+    // ✅ Правильная проверка: есть ли showConfirm
+    let confirmed = false;
+    if (typeof showConfirm === 'function') {
+        confirmed = await showConfirm('Вы уверены, что хотите удалить этот лид?');
+    } else {
+        confirmed = confirm('Вы уверены, что хотите удалить этот лид?');
     }
-}
 
+    if (!confirmed) return;
+
+    fetch(`/crm/delete_lead/${leadId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => {
+        if (response.ok) {
+            showNotification('Лид удалён', 'success');
+            if (currentLeadId === leadId) {
+                closeModal();
+            }
+            setTimeout(() => location.reload(), 500);
+        } else {
+            return response.text().then(text => {
+                throw new Error(`Ошибка ${response.status}: ${text}`);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка удаления:', error);
+        showNotification('Ошибка при удалении: ' + error.message, 'error');
+    });
+}
 
 
 document.head.insertAdjacentHTML('beforeend', `
@@ -544,6 +552,32 @@ function applyPriorityColors(){
 }
 document.addEventListener('DOMContentLoaded', applyPriorityColors);
 
+document.addEventListener('DOMContentLoaded', () => {
+    const innInput = document.getElementById('modal_inn');
+    if(innInput){
+        innInput.addEventListener('input', (e) => {
+            // Оставляем только цифры
+            e.target.value = e.target.value.replace(/\D/g, '');
+
+            // Визуальная подсказка о длине
+            const len = e.target.value.length;
+            if(len > 0 && len !== 10 && len !== 12){
+                e.target.style.borderColor = 'var(--btn-warning, #f57c00)';
+            } else {
+                e.target.style.borderColor = '';
+            }
+        });
+
+        innInput.addEventListener('blur', () => {
+            // Убираем подсветку при потере фокуса
+            innInput.style.borderColor = '';
+        });
+    }
+
+    // Инициализация приоритетов
+    applyPriorityColors();
+});
+
 // ======== СОХРАНЕНИЕ ЛИДА ========
 function saveLead() {
     if (!currentLeadId) return;
@@ -584,13 +618,49 @@ function saveLead() {
         }
     }
 
+    // ✅ ВАЛИДАЦИЯ ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
     const required = ['company_name', 'legal_form', 'legal_name'];
     const missing = required.filter(f => !data[f]);
     if (missing.length) {
-        alert('Заполните обязательные поля:\n• ' + missing.map(f => fields[f]).join('\n• '));
+        showNotification('Заполните: ' + missing.map(f => fields[f]).join(', '), 'error');
         return;
     }
 
+    // ✅ ВАЛИДАЦИЯ ИНН (если заполнен)
+    if (data.inn) {
+        const inn = data.inn.replace(/\D/g, ''); // Только цифры
+        if (!/^\d+$/.test(inn)) {
+            showNotification('ИНН должен содержать только цифры', 'error');
+            document.getElementById('modal_inn')?.focus();
+            return;
+        }
+        if (inn.length !== 10 && inn.length !== 12) {
+            showNotification('ИНН должен быть 10 или 12 цифр', 'error');
+            document.getElementById('modal_inn')?.focus();
+            // Подсветка поля
+            const innInput = document.getElementById('modal_inn');
+            if (innInput) {
+                innInput.classList.add('input-error');
+                setTimeout(() => innInput.classList.remove('input-error'), 2000);
+            }
+            return;
+        }
+        // Сохраняем очищенный ИНН
+        data.inn = inn;
+    }
+
+    // ✅ ВАЛИДАЦИЯ ОГРН (опционально, если заполнен)
+    if (data.ogrn) {
+        const ogrn = data.ogrn.replace(/\D/g, '');
+        if (!/^\d+$/.test(ogrn) || (ogrn.length !== 13 && ogrn.length !== 15)) {
+            showNotification('ОГРН должен быть 13 или 15 цифр', 'error');
+            document.getElementById('modal_ogrn')?.focus();
+            return;
+        }
+        data.ogrn = ogrn;
+    }
+
+    // ✅ ОТПРАВКА НА СЕРВЕР
     fetch(`update_lead/${currentLeadId}/`, {
         method: 'POST',
         headers: {
@@ -602,14 +672,14 @@ function saveLead() {
     .then(r => r.json())
     .then(result => {
         if (result.error) {
-            alert('Ошибка: ' + result.error);
+            showNotification('Ошибка: ' + result.error, 'error');
         } else {
             updateCardOnBoard(currentLeadId, data);
             updateLegalNameHeader(data.legal_name);
             showNotification('Сохранено!', 'success');
             applyPriorityColors();
 
-            // ✅ Обновляем статистику колонки, где находится лид
+            // Обновляем статистику колонки
             const card = document.querySelector(`.kanban-card[data-id="${currentLeadId}"]`);
             if (card) {
                 const column = card.closest('.kanban-column[data-column-id]');
@@ -622,18 +692,40 @@ function saveLead() {
     })
     .catch(err => {
         console.error(err);
-        alert('Произошла ошибка при сохранении');
+        showNotification('Ошибка сети: ' + err.message, 'error');
     });
 }
 
 // ======== CHECKO API ========
 function makeRequestChecko(){
-    const inn = document.getElementById('modal_inn')?.value.trim();
-    if(!inn){ alert('Введите ИНН'); document.getElementById('modal_inn')?.focus(); return; }
-    if(!/^\d{10}$/.test(inn)){ alert('ИНН должен быть 10 цифр'); return; }
+    const innInput = document.getElementById('modal_inn');
+    const inn = innInput?.value.trim();
+
+    // ✅ 1. Проверка: поле не пустое
+    if(!inn){
+        innInput?.focus();
+        showNotification('Введите ИНН', 'error');
+        return;
+    }
+
+    // ✅ 2. Проверка: только цифры
+    if(!/^\d+$/.test(inn)){
+        innInput?.focus();
+        showNotification('ИНН должен содержать только цифры', 'error');
+        return;
+    }
+
+    // ✅ 3. Проверка: длина (10 для ЮЛ, 12 для ИП)
+    if(inn.length !== 10 && inn.length !== 12){
+        innInput?.focus();
+        showNotification('ИНН должен быть 10 или 12 цифр', 'error');
+        return;
+    }
 
     const button = document.querySelector('.api-checko-btn');
     const txt = button?.textContent;
+
+    // ✅ Блокируем кнопку на время запроса
     if(button){
         button.textContent = 'Загрузка...';
         button.disabled = true;
@@ -649,26 +741,46 @@ function makeRequestChecko(){
         body:JSON.stringify({inn})
     })
     .then(r => {
-        if(!r.ok) throw new Error(r.status);
+        if(!r.ok){
+            throw new Error(`Ошибка сервера: ${r.status}`);
+        }
         return r.json();
     })
     .then(data => {
+        // ✅ Разблокируем кнопку
         if(button){
             button.textContent = txt;
             button.disabled = false;
         }
+
+        // ✅ 4. Проверка ответа от Checko
         if(data.success){
             fillFormWithCompanyData(data.data);
-            showNotification('Данные загружены','success');
+            showNotification('Данные загружены', 'success');
         } else {
-            showNotification('Ошибка: ' + (data.error || 'Не удалось получить данные'),'error');
+            // Компания не найдена или ошибка API
+            const errorMsg = data.error || 'Компания не найдена';
+            showNotification(errorMsg, 'error');
+
+            // Подсветка поля ИНН
+            if (innInput) {
+                innInput.style.borderColor = 'var(--btn-danger, #ef4444)';
+            }
+            setTimeout(() => {
+                if (innInput) {
+                    innInput.style.borderColor = '';
+                }
+            }, 2000);
         }
     })
     .catch(e => {
+        // ✅ 5. Ошибка сети
         if(button){
             button.textContent = txt;
             button.disabled = false;
         }
+
+        console.error('Checko API error:', e);
         showNotification('Ошибка сети: ' + e.message, 'error');
     });
 }
