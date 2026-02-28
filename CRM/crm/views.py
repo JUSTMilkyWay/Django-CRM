@@ -7,25 +7,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db import models
 import json
 from .services import create_default_columns
-
 from .models import Lead, KanbanColumn
-
 from .models import KanbanColumn, Lead
-
-
-from django.db.models import Sum
-
-def crm_view(request):
-    columns = KanbanColumn.objects.filter(user=request.user).prefetch_related('leads')
-
-    for column in columns:
-        result = column.leads.aggregate(total=Sum('total_amount'))
-        column.total_sum = result['total'] or 0  # ← Важно: или 0, если None
-
-    return render(request, 'crm/crm.html', {
-        'columns': columns,
-        # ...
-    })
+from django.db import connection
 
 
 @login_required
@@ -117,7 +101,27 @@ def crm(request):
         .order_by("order")
     )
 
-    return render(request, "crm/crm.html", {"columns": columns})
+    # Считаем сумму лидов для каждой колонки
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT column_id, COALESCE(SUM(total_amount), 0) as total_sum
+            FROM crm_lead
+            WHERE user_id = %s
+            GROUP BY column_id
+        """, [user.id])
+
+        sums_by_column = {row[0]: row[1] for row in cursor.fetchall()}
+
+    # Добавляем сумму и отформатированную строку к каждой колонке
+    for column in columns:
+        raw_sum = sums_by_column.get(column.id, 0)
+        column.total_sum = raw_sum
+        # ✅ Форматируем: 1000000 → "1 000 000 ₽"
+        column.total_sum_formatted = f"{int(raw_sum):,}".replace(',', ' ') + ' ₽'
+
+    return render(request, 'crm/crm.html', {
+        'columns': columns,
+    })
 
 
 @login_required
@@ -228,3 +232,4 @@ def get_lead(request, lead_id):
         })
     except Lead.DoesNotExist:
         return JsonResponse({"error": "Лид не найден"}, status=404)
+

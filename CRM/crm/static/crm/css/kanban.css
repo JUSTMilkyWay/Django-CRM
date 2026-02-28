@@ -63,19 +63,28 @@ main {
 
 .column-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column; /* Элементы друг под другом */
+    gap: 10px;              /* Отступ между строкой заголовка и суммой */
     margin-bottom: 20px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border-color);
 }
 
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+
 .column-header h2 {
-    font-size: 14px;
+    font-size: 18px;
     font-weight: 600;
     color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    margin: 0; /* Убираем стандартные отступы */
 }
 
 .column-count {
@@ -85,6 +94,30 @@ main {
     border-radius: 6px;
     font-size: 12px;
     font-weight: 500;
+    flex-shrink: 0; /* Чтобы счётчик не сжимался */
+}
+
+.column-sum {
+    display: block;
+    width: 100%;
+    text-align: right;       /* Выравнивание вправо */
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary); /* Или var(--accent-primary) для акцента */
+    font-family: monospace;  /* Моноширинный шрифт для цифр */
+    padding-top: 6px;
+    border-top: 1px dashed var(--border-color); /* Лёгкий разделитель */
+}
+
+.column-sum.updated {
+    color: var(--accent-primary, #10b981);
+    animation: pulse 0.3s ease;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
 }
 
 .add-card-btn {

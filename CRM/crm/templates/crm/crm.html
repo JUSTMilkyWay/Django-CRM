@@ -29,14 +29,14 @@
 <div class="crm crm-page">
     <div class="kanban">
         {% for column in columns %}
-        <div class="kanban-column" ondragover="allowDrop(event)" ondrop="drop(event, {{ column.id }})">
+            <div class="kanban-column" data-column-id="{{ column.id }}" ondragover="allowDrop(event)" ondrop="drop(event, {{ column.id }})">
             <div class="column-header">
-                <h2>{{ column.title }}</h2>
-                <div class="column-stats">
+                <div class="header-top">
+                    <h2 class="column-title">{{ column.title }}</h2>
                     <span class="column-count">{{ column.leads.count }}</span>
-                    <span class="column-sum" data-column-id="{{ column.id }}">
-                        {{ column.total_sum|default:0 }} ₽
-                    </span>
+                </div>
+                <div class="column-sum" data-column-id="{{ column.id }}">
+                    {{ column.total_sum_formatted }}
                 </div>
             </div>
 

@@ -262,11 +262,29 @@ function updateCardOnBoard(leadId, data) {
         });
     }
 
-    // Приоритет
+    // Приоритет — карточка
     if (data.priority) {
-        card.dataset.priority = data.priority;
+        const priorityClass = data.priority || 'not_set';
+        card.dataset.priority = priorityClass;
         card.classList.remove('priority-not_set', 'priority-low', 'priority-high', 'priority-critical');
-        card.classList.add(`priority-${data.priority}`);
+        card.classList.add(`priority-${priorityClass}`);
+    }
+
+    // ✅ НОВОЕ: Приоритет — бейдж внутри карточки
+    const badge = card.querySelector('.priority-badge');
+    if (badge && data.priority) {
+        // 1. Обновляем классы бейджа
+        badge.classList.remove('not_set', 'low', 'high', 'critical');
+        badge.classList.add(data.priority);
+
+        // 2. Обновляем текст бейджа
+        const labels = {
+            'not_set': 'Не обозначен',
+            'low': 'Низкий',
+            'high': 'Высокий',
+            'critical': 'Критический'
+        };
+        badge.textContent = labels[data.priority] || 'Не обозначен';
     }
 
     // Перепривязка кнопок
@@ -421,29 +439,90 @@ function drag(event) {
     dragged.classList.add('dragging');
 }
 function allowDrop(event) { event.preventDefault(); }
+
+// Обновление статистики колонки (сумма + количество)
+// Обновление статистики колонки (сумма + количество)
+function updateColumnStats(columnId) {
+    // ✅ Надёжный поиск по data-атрибуту
+    const column = document.querySelector(`.kanban-column[data-column-id="${columnId}"]`);
+    if (!column) return;
+
+    const cards = column.querySelectorAll('.kanban-card');
+
+    // ✅ Считаем количество
+    const count = cards.length;
+    const countEl = column.querySelector('.column-count');
+    if (countEl) {
+        countEl.textContent = count;
+    }
+
+    // ✅ Считаем сумму
+    let total = 0;
+    cards.forEach(card => {
+        const amountEl = card.querySelector('.card-amount .amount-value');
+        if (amountEl) {
+            // Очищаем строку "1 000 000 ₽" → 1000000
+            const raw = amountEl.textContent.replace(/[^\d]/g, '');
+            total += parseInt(raw) || 0;
+        }
+    });
+
+    // ✅ Форматируем и обновляем сумму
+    const sumEl = column.querySelector('.column-sum');
+    if (sumEl) {
+        sumEl.textContent = total.toLocaleString('ru-RU') + ' ₽';
+
+        // ✅ Анимация изменения
+        sumEl.classList.add('updated');
+        setTimeout(() => sumEl.classList.remove('updated'), 300);
+    }
+}
+
 function drop(event, columnId) {
     event.preventDefault();
     if (!dragged) return;
+
+    // Получаем ID старой колонки
+    const oldColumn = dragged.closest('.kanban-column[data-column-id]');
+    const oldColumnId = oldColumn?.dataset.columnId;
+
+    // Перемещаем карточку визуально
     const container = event.currentTarget.querySelector('.kanban-cards');
     container.appendChild(dragged);
 
+    // Отправляем на сервер ТОЛЬКО column_id (без order)
     fetch(`move_lead/${dragged.dataset.id}/`, {
-        method:'POST',
-        headers:{
-            'Content-Type':'application/json',
-            'X-CSRFToken':getCookie('csrftoken'),
-            'X-Requested-With':'XMLHttpRequest'
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
         },
-        body: JSON.stringify({column_id: columnId}),
-        credentials:'same-origin'
-    }).then(r=>r.json()).then(d=>console.log('Moved:',d)).catch(e=>console.error(e));
+        body: JSON.stringify({
+            column_id: columnId
+            // ✅ order НЕ отправляем
+        }),
+        credentials: 'same-origin'
+    })
+    .then(r => r.json())
+    .then(d => {
+        console.log('Moved:', d);
+        // Обновляем статистику в старой и новой колонках
+        if (oldColumnId && oldColumnId !== String(columnId)) {
+            updateColumnStats(oldColumnId);
+        }
+        updateColumnStats(String(columnId));
+    })
+    .catch(e => console.error(e));
+
+    // Cleanup
+    document.addEventListener('dragend', () => {
+        if (dragged) {
+            dragged.classList.remove('dragging');
+            dragged = null;
+        }
+    }, { once: true });
 }
-document.addEventListener('dragend',()=>{
-    if(dragged){
-        dragged.classList.remove('dragging');
-        dragged=null;
-    }
-});
 
 // ======== ПРИОРИТЕТЫ ========
 function applyPriorityColors(){
@@ -518,6 +597,16 @@ function saveLead() {
             updateLegalNameHeader(data.legal_name);
             showNotification('Сохранено!', 'success');
             applyPriorityColors();
+
+            // ✅ Обновляем статистику колонки, где находится лид
+            const card = document.querySelector(`.kanban-card[data-id="${currentLeadId}"]`);
+            if (card) {
+                const column = card.closest('.kanban-column[data-column-id]');
+                const columnId = column?.dataset.columnId;
+                if (columnId) {
+                    updateColumnStats(columnId);
+                }
+            }
         }
     })
     .catch(err => {
