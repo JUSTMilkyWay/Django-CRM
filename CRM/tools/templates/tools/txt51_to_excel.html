@@ -1,15 +1,15 @@
 {% extends "main/layout.html" %}
 
-{% block title %}TXT → Excel{% endblock %}
+{% block title %}51 TXT в Excel{% endblock %}
 
 {% block content %}
 
 <div class="container-fluid mt-4">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>TXT → Excel</h2>
+        <h2>51 TXT в Excel</h2>
         <a href="{% url 'tools_main' %}" class="btn btn-outline-secondary">
-            ← Назад
+            Назад
         </a>
     </div>
 
@@ -20,7 +20,7 @@
                 {% csrf_token %}
 
                 <div class="mb-3">
-                    <label class="form-label">
+                    <label class="card-text text-muted">
                         Выберите TXT файлы
                     </label>
                     <input type="file"
@@ -41,5 +41,61 @@
     </div>
 
 </div>
+
+<script>
+document.querySelector('form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+
+    // Показываем загрузку
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Обработка...';
+
+    try {
+        const response = await fetch(this.action || window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        });
+
+        const contentType = response.headers.get('content-type');
+
+        // Если JSON (ошибка)
+        if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            if (!data.success) {
+                showNotification(data.error, 'error');
+                return;
+            }
+        }
+
+        // Если файл (успех)
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '51_converted_' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            showNotification('Файл успешно сконвертирован', 'success');
+        }
+
+    } catch (error) {
+        showNotification('Ошибка: ' + error.message, 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    }
+});
+</script>
 
 {% endblock %}

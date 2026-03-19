@@ -59,6 +59,7 @@ main {
 
 .kanban-column:last-child {
     border-right: none;
+    background-image: none;
 }
 
 .column-header {

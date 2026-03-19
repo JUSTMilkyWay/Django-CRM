@@ -153,7 +153,6 @@ def delete_lead(request, lead_id):
 
 
 @login_required
-@csrf_exempt
 def move_lead(request, lead_id):
     if request.method != "POST":
         return JsonResponse({"error": "Метод не разрешен"}, status=405)
@@ -162,14 +161,12 @@ def move_lead(request, lead_id):
         data = json.loads(request.body)
         lead = get_object_or_404(Lead, id=lead_id, user=request.user)
 
-        # Обновляем колонку
         new_column_id = data.get("column_id")
         if new_column_id:
             new_column = get_object_or_404(KanbanColumn, id=new_column_id, user=request.user)
             lead.column = new_column
             lead.save()
 
-        # ✅ Перенумеруем ВСЕ лиды в колонке по переданному порядку
         lead_order = data.get("lead_order", [])
         for i, item in enumerate(lead_order):
             Lead.objects.filter(id=item['id'], user=request.user).update(order=i)

@@ -16,7 +16,7 @@
 <body>
     <aside>
         <img src="{% static 'main/img/RingedPlanet_Pixelited.png' %}" alt="Лого">
-        <span class="logo" >CRM</span>
+        <span class="logo" >FlowCRM</span>
         <h3>Навигация</h3>
         <ul>
             <a href="{% url 'home_page' %}"><li><i class="bi bi-house-door"></i>Главная</li></a>
@@ -24,7 +24,7 @@
             <a href="{% url 'tools_main' %}"><li><i class="bi bi-pencil-square"></i>Инструменты</li></a>
         </ul>
         <ul class="options_layout">
-            <a href=""><li ><i class="bi bi-gear-wide"></i><span style="text-decoration: line-through;">Настройки</span></li></a><br>
+            <a href=""><li ><i class="bi bi-gear-wide"></i>Настройки</li></a><br>
             <a href="{% url 'profile' %}"><li><i class="bi bi-person-square"></i> Аккаунт</li></a>
         </ul>
         <style>
@@ -38,6 +38,7 @@
 
         {% endblock %}
     </main>
+    <script src="{% static 'js/theme.js' %}"></script>
     <script src="{% static 'crm/js/common.js' %}"></script>
 </body>
 </html>

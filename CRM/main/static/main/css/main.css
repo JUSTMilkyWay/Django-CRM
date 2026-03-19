@@ -138,7 +138,7 @@ aside img {
 }
 
 aside .logo {
-    font-size: 36px;
+    font-size: 26px;
     margin-left: 95px;
     font-weight: 700;
     position: relative;
@@ -611,4 +611,33 @@ main {
         right: 20px;
         max-width: calc(100% - 40px);
     }
+}
+/* === КНОПКА ПЕРЕКЛЮЧЕНИЯ ТЕМЫ === */
+.theme-toggle {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color, #2a2f3d);
+}
+
+#themeSwitcher {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+#themeSwitcher:hover {
+    background: var(--accent-primary);
+    color: #ffffff;
+}
+
+#themeSwitcher i {
+    font-size: 18px;
 }

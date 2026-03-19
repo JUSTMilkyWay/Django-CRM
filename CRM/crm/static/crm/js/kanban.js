@@ -476,17 +476,14 @@ function drop(event, columnId) {
 
     const container = event.currentTarget.querySelector('.kanban-cards');
 
-    // ✅ Находим карточку, над которой отпустили (или ближайшую снизу)
     const afterElement = getDragAfterElement(container, event.clientY);
 
-    // ✅ Вставляем в правильное место (не в конец!)
     if (afterElement == null) {
-        container.appendChild(dragged);  // В конец, если ниже всех
+        container.appendChild(dragged);
     } else {
-        container.insertBefore(dragged, afterElement);  // Перед найденной карточкой
+        container.insertBefore(dragged, afterElement);
     }
 
-    // ✅ Получаем ВСЕ карточки в НОВОМ порядке
     const cards = container.querySelectorAll('.kanban-card');
     const leadOrder = Array.from(cards).map(card => ({
         id: parseInt(card.dataset.id)

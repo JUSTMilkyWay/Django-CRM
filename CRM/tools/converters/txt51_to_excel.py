@@ -1,14 +1,13 @@
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 import os
 import io
 from datetime import datetime
 
 
 def convert_txt_files(files):
-    # === Загружаем шаблон ===
     current_dir = os.path.dirname(__file__)
     template_path = os.path.normpath(
         os.path.join(current_dir, "..", "file_templates", "Шаблон_excel51_to_txt.xlsx")
@@ -18,6 +17,7 @@ def convert_txt_files(files):
     ws = wb.active
 
     row = ws.max_row
+    rows_converted = 0
 
     mapping = {
         "Номер": "C", "Дата": "D", "Сумма": "E",
@@ -38,7 +38,6 @@ def convert_txt_files(files):
     for file in files:
         content = file.read()
 
-        # Удаляем BOM
         if content.startswith(b'\xef\xbb\xbf'):
             content = content[3:]
 
@@ -50,6 +49,7 @@ def convert_txt_files(files):
                 if current_data:
                     row += 1
                     write_row(ws, row, current_data, mapping, post)
+                    rows_converted += 1
                     current_data = {}
                     post = True
                 current_data["A"] = line.split("=", 1)[1]
@@ -57,6 +57,7 @@ def convert_txt_files(files):
             elif line.strip() == "КонецДокумента":
                 row += 1
                 write_row(ws, row, current_data, mapping, post)
+                rows_converted += 1
                 current_data = {}
                 post = True
 
@@ -67,17 +68,21 @@ def convert_txt_files(files):
                 if k == "ДатаСписано" and v:
                     post = False
 
-    # Запись последней секции (если есть)
     if current_data:
         row += 1
         write_row(ws, row, current_data, mapping, post)
+        rows_converted += 1
 
-    # === Выравнивание ===
+    if rows_converted == 0:
+        return JsonResponse({
+            'success': False,
+            'error': 'Файлы не содержат данных для конвертации. Проверьте формат .txt'
+        }, status=400)
+
     for r in ws.iter_rows():
         for cell in r:
             cell.alignment = Alignment(vertical="center", horizontal="left")
 
-    # === Автоширина ===
     for column in ws.columns:
         max_length = 0
         col_letter = get_column_letter(column[0].column)
@@ -86,11 +91,9 @@ def convert_txt_files(files):
                 max_length = max(max_length, len(str(cell.value)))
         ws.column_dimensions[col_letter].width = max_length + 2
 
-    # === Генерируем имя файла: converted_YYYYMMDD.xlsx ===
     today_str = datetime.now().strftime("%Y%m%d")
     filename = f"51_converted_{today_str}.xlsx"
 
-    # === Сохраняем в память и отдаём ===
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
